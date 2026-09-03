@@ -9,6 +9,7 @@ mvp/.build/
 # committed, even to a private repository: a repository can be made public by
 # one wrong click, and a photograph of somebody's cattle shed is personal data.
 **/.env
+**/.gh-token
 **/.seed_credentials.txt
 mvp/data/
 mvp/backups/

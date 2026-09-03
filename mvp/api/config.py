@@ -95,8 +95,13 @@ class Settings(BaseSettings):
         import socket
 
         host = self._db_hostname()
-        args: dict = {"host": host}
         ssl = self.postgres_sslmode or ("require" if self._remote_postgres() else "")
+
+        # Supavisor session pooler: never pass hostaddr (breaks tenant SNI). Hostname-only + SSL.
+        if "pooler.supabase.com" in host:
+            return {"sslmode": ssl or "require"}
+
+        args: dict = {}
         if ssl:
             args["sslmode"] = ssl
         if self.postgres_prefer_ipv4 or self._remote_postgres():
@@ -107,17 +112,32 @@ class Settings(BaseSettings):
                     break
             except OSError:
                 ipv4 = None
-            if ipv4 and "pooler.supabase.com" not in host:
-                # Pooler routes by TLS SNI on the hostname; connecting by IP alone fails.
+            if ipv4:
                 args["hostaddr"] = ipv4
             elif self._direct_supabase_host():
                 raise RuntimeError(
                     "POSTGRES_HOST is db.*.supabase.co (IPv6-only). Render cannot use it. "
-                    "Supabase → Connect → Session pooler: set POSTGRES_HOST (or "
-                    "POSTGRES_POOLER_HOST) to the pooler hostname and use users "
-                    "postgres.<project-ref> and gautrack_app.<project-ref>."
+                    "Supabase → Connect → Session pooler: set POSTGRES_HOST to the pooler "
+                    "hostname and users postgres.<project-ref> and gautrack_app.<project-ref>."
                 )
         return args
+
+    def validate_supabase_pooler_env(self) -> None:
+        """Fail fast on Render with a clear message (pooler usernames are easy to get wrong)."""
+        host = self._db_hostname()
+        if "pooler.supabase.com" not in host:
+            return
+        ref = "your-project-ref"
+        for label, user in (
+            ("POSTGRES_OWNER_USER", self.postgres_owner_user),
+            ("POSTGRES_APP_USER", self.postgres_app_user),
+        ):
+            if "." not in user:
+                raise RuntimeError(
+                    f"{label} is '{user}' but Supabase pooler requires "
+                    f"role.<project-ref> (e.g. postgres.{ref}). "
+                    "Copy Session pooler settings from Supabase → Connect."
+                )
 
     def _url(self, user: str, password: str) -> str:
         from urllib.parse import quote

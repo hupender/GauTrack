@@ -2,6 +2,8 @@
 set -eu
 cd /app
 
+python -c "from config import settings; settings.validate_supabase_pooler_env()"
+
 echo "[entrypoint] running migrations..."
 alembic upgrade head
 
