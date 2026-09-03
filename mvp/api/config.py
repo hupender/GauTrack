@@ -33,6 +33,9 @@ class Settings(BaseSettings):
     # Remote Postgres (e.g. Supabase): SSL required. PaaS hosts without IPv6 need prefer_ipv4.
     postgres_sslmode: str = ""
     postgres_prefer_ipv4: int = 0
+    # Optional override when POSTGRES_HOST is db.*.supabase.co (IPv6-only). Use the
+    # Session pooler hostname from Supabase → Connect → Session mode (IPv4).
+    postgres_pooler_host: str = ""
     # explicit overrides (used by docker-compose / CI); otherwise derived
     database_url: str | None = None
     database_url_owner: str | None = None
@@ -64,38 +67,65 @@ class Settings(BaseSettings):
     max_sync_items: int = 200
     public_report_per_hour_per_ip: int = 10
 
+    def _db_hostname(self) -> str:
+        if self.postgres_pooler_host.strip():
+            return self.postgres_pooler_host.strip()
+        return self.postgres_host
+
     def _remote_postgres(self) -> bool:
-        h = self.postgres_host
-        return "supabase.co" in h or "pooler.supabase.com" in h
+        blob = " ".join(
+            filter(
+                None,
+                [
+                    self.postgres_host,
+                    self.postgres_pooler_host,
+                    self.database_url or "",
+                    self.database_url_owner or "",
+                ],
+            )
+        )
+        return "supabase.co" in blob or "pooler.supabase.com" in blob
+
+    def _direct_supabase_host(self) -> bool:
+        h = self.postgres_host.strip()
+        return h.startswith("db.") and h.endswith(".supabase.co") and not self.postgres_pooler_host.strip()
 
     def db_connect_args(self) -> dict:
         """Extra libpq/psycopg kwargs (IPv4 + SSL for cloud Postgres)."""
         import socket
 
-        args: dict = {}
+        host = self._db_hostname()
+        args: dict = {"host": host}
         ssl = self.postgres_sslmode or ("require" if self._remote_postgres() else "")
         if ssl:
             args["sslmode"] = ssl
         if self.postgres_prefer_ipv4 or self._remote_postgres():
+            ipv4: str | None = None
             try:
-                for info in socket.getaddrinfo(
-                    self.postgres_host,
-                    self.postgres_port,
-                    socket.AF_INET,
-                    socket.SOCK_STREAM,
-                ):
-                    args["hostaddr"] = info[4][0]
+                for info in socket.getaddrinfo(host, self.postgres_port, socket.AF_INET, socket.SOCK_STREAM):
+                    ipv4 = info[4][0]
                     break
             except OSError:
-                pass
+                ipv4 = None
+            if ipv4 and "pooler.supabase.com" not in host:
+                # Pooler routes by TLS SNI on the hostname; connecting by IP alone fails.
+                args["hostaddr"] = ipv4
+            elif self._direct_supabase_host():
+                raise RuntimeError(
+                    "POSTGRES_HOST is db.*.supabase.co (IPv6-only). Render cannot use it. "
+                    "Supabase → Connect → Session pooler: set POSTGRES_HOST (or "
+                    "POSTGRES_POOLER_HOST) to the pooler hostname and use users "
+                    "postgres.<project-ref> and gautrack_app.<project-ref>."
+                )
         return args
 
     def _url(self, user: str, password: str) -> str:
         from urllib.parse import quote
 
+        host = self._db_hostname()
         url = (
             f"postgresql+psycopg://{quote(user)}:{quote(password)}"
-            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+            f"@{host}:{self.postgres_port}/{self.postgres_db}"
         )
         ssl = self.postgres_sslmode or ("require" if self._remote_postgres() else "")
         if ssl:
