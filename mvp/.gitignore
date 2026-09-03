@@ -1,6 +1,7 @@
 .venv/
 .pgdata/
 .env
+.env.supabase
 .seed_credentials.txt
 data/
 photos/
