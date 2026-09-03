@@ -68,7 +68,11 @@ def _mark_in_credentials_file(username: str) -> bool:
 
 
 def set_password(username: str, password: str) -> str:
-    engine = create_engine(settings.owner_database_url, future=True)
+    engine = create_engine(
+        settings.owner_database_url,
+        future=True,
+        connect_args=settings.db_connect_args(),
+    )
     with Session(engine, future=True) as db:
         row = db.execute(
             text("SELECT id, full_name, role::text AS role FROM users WHERE username = :u"),

@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     app_db_password: str = ""
     postgres_host: str = "127.0.0.1"
     postgres_port: int = 55432
+    # Remote Postgres (e.g. Supabase): SSL required. PaaS hosts without IPv6 need prefer_ipv4.
+    postgres_sslmode: str = ""
+    postgres_prefer_ipv4: int = 0
     # explicit overrides (used by docker-compose / CI); otherwise derived
     database_url: str | None = None
     database_url_owner: str | None = None
@@ -61,13 +64,43 @@ class Settings(BaseSettings):
     max_sync_items: int = 200
     public_report_per_hour_per_ip: int = 10
 
+    def _remote_postgres(self) -> bool:
+        h = self.postgres_host
+        return "supabase.co" in h or "pooler.supabase.com" in h
+
+    def db_connect_args(self) -> dict:
+        """Extra libpq/psycopg kwargs (IPv4 + SSL for cloud Postgres)."""
+        import socket
+
+        args: dict = {}
+        ssl = self.postgres_sslmode or ("require" if self._remote_postgres() else "")
+        if ssl:
+            args["sslmode"] = ssl
+        if self.postgres_prefer_ipv4 or self._remote_postgres():
+            try:
+                for info in socket.getaddrinfo(
+                    self.postgres_host,
+                    self.postgres_port,
+                    socket.AF_INET,
+                    socket.SOCK_STREAM,
+                ):
+                    args["hostaddr"] = info[4][0]
+                    break
+            except OSError:
+                pass
+        return args
+
     def _url(self, user: str, password: str) -> str:
         from urllib.parse import quote
 
-        return (
+        url = (
             f"postgresql+psycopg://{quote(user)}:{quote(password)}"
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
         )
+        ssl = self.postgres_sslmode or ("require" if self._remote_postgres() else "")
+        if ssl:
+            url += f"?sslmode={quote(ssl, safe='')}"
+        return url
 
     @property
     def app_database_url(self) -> str:

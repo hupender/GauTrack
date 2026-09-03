@@ -1,0 +1,9 @@
+# GauTrack on Render: set DB secrets in the dashboard (see mvp/.env.supabase).
+services:
+  - type: web
+    name: gautrack-demo
+    runtime: docker
+    rootDir: mvp/api
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /admin
+    plan: free

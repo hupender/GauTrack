@@ -165,7 +165,11 @@ def wipe(db: Session) -> None:
 
 
 def seed(force: bool = False, new_passwords: bool = False) -> None:
-    engine = create_engine(settings.owner_database_url, future=True)
+    engine = create_engine(
+        settings.owner_database_url,
+        future=True,
+        connect_args=settings.db_connect_args(),
+    )
     with Session(engine, future=True) as db:
         existing = db.execute(text("SELECT count(*) FROM users")).scalar_one()
         if existing and not force:

@@ -46,6 +46,8 @@ def _json_serializer(obj) -> str:
     return json.dumps(obj, default=_json_default)
 
 
+_connect = settings.db_connect_args()
+
 engine = create_engine(
     settings.app_database_url,
     pool_pre_ping=True,
@@ -53,6 +55,7 @@ engine = create_engine(
     max_overflow=20,
     future=True,
     json_serializer=_json_serializer,
+    connect_args=_connect,
 )
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False, future=True)
@@ -65,6 +68,7 @@ def owner_engine():
         pool_pre_ping=True,
         future=True,
         json_serializer=_json_serializer,
+        connect_args=settings.db_connect_args(),
     )
 
 
