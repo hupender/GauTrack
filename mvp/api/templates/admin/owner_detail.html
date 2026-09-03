@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}{{ owner.name }}: GauTrack{% endblock %}
+{% block content %}
+<p class="muted"><a href="/admin/owners">&larr; All owners</a></p>
+<h1>{{ owner.name }} {% if owner.merged_into %}<span class="pill warn">merged</span>{% endif %}</h1>
+
+<div class="grid cards2">
+  <div class="card">
+    <h2>Details</h2>
+    <table>
+      <tr><th>Father / husband</th><td>{{ owner.relation_name or '-' }}</td></tr>
+      <tr><th>Phone</th><td class="mono">{{ phone or '-' }}</td></tr>
+      <tr><th>Ward / village</th><td>{{ owner.ward_or_village or '-' }}</td></tr>
+      <tr><th>Address</th><td>{{ owner.address or '-' }}</td></tr>
+      <tr><th>Keeper type</th><td>{{ owner.keeper_type.value }}</td></tr>
+      {# Declared against registered.  Asked at the door before counting starts,
+         so the answer is not shaped by what the officer has already seen. #}
+      <tr><th>Cattle declared by keeper</th>
+          <td>{% if owner.self_declared_cattle_count is none %}<span class="muted">not recorded</span>
+              {% else %}<strong>{{ owner.self_declared_cattle_count }}</strong>
+                &nbsp;<span class="muted">vs {{ animals|length }} on the register</span>
+                {% if owner.self_declared_cattle_count > animals|length %}
+                  <span class="pill pbad">{{ owner.self_declared_cattle_count - animals|length }} unaccounted for</span>
+                {% elif owner.self_declared_cattle_count < animals|length %}
+                  <span class="pill pmid">{{ animals|length - owner.self_declared_cattle_count }} more found than declared</span>
+                {% else %}<span class="pill pgood">matches</span>{% endif %}
+              {% endif %}</td></tr>
+      <tr><th>Premises area</th>
+          <td>{% if owner.premises_area_sq_yards is none %}<span class="muted">not recorded</span>
+              {% else %}{{ "{:,.0f}".format(owner.premises_area_sq_yards) }} sq yd
+                <span class="muted">(about {{ "{:,.0f}".format(owner.premises_area_sq_yards|float * 0.8361) }} m²)</span>
+              {% endif %}</td></tr>
+      <tr><th>Location</th><td class="mono">{% if owner.lat %}{{ "%.5f"|format(owner.lat) }}, {{ "%.5f"|format(owner.lng) }}
+          <span class="muted">±{{ owner.gps_accuracy_m|round|int if owner.gps_accuracy_m else '?' }} m</span>{% else %}-{% endif %}</td></tr>
+      <tr><th>ID on file</th><td>{% if owner.id_type %}{{ owner.id_type }} ····{{ owner.id_last4 }}{% else %}<span class="muted">none: Aadhaar numbers are not stored</span>{% endif %}</td></tr>
+      <tr><th>Registered</th><td>{{ owner.created_at.strftime('%d %b %Y %H:%M') }}</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Fines ({{ fines|length }})</h2>
+    <table>
+      <thead><tr><th>#</th><th>Amount</th><th>Status</th><th>Issued</th><th>Receipt</th></tr></thead>
+      <tbody>
+      {% for f in fines %}
+        <tr><td>{{ f.offence_number }}</td><td>₹{{ "{:,.0f}".format(f.amount) }}</td>
+            <td><span class="pill {{ 'good' if f.status.value=='paid' else 'warn' }}">{{ f.status.value }}</span></td>
+            <td class="muted">{{ f.issued_at.strftime('%d %b %Y') }}</td>
+            <td class="mono">{{ f.receipt_no or '-' }}</td></tr>
+      {% else %}<tr><td colspan="5" class="muted">No fines.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="margin-top:1rem">
+  <h2>Animals ({{ animals|length }})</h2>
+  <table>
+    <thead><tr><th>Tag</th><th>Species</th><th>Sex</th><th>Age</th><th class="right">Years</th><th>Breed</th>
+               <th>Identification marks</th><th>Status</th><th>Registered</th></tr></thead>
+    <tbody>
+    {% for a in animals %}
+      <tr>
+        <td class="mono"><a href="/admin/animals/{{ a.id }}">{{ a.tag_id or 'untagged' }}</a></td>
+        <td>{{ a.species.value }}</td><td>{{ a.sex.value }}</td><td>{{ a.age_class.value }}</td>
+        <td class="right">{{ '%g'|format(a.age_years) if a.age_years is not none else '-' }}</td>
+        <td>{{ a.breed or '-' }}</td>
+        <td class="muted">{{ [a.identification_mark_1, a.identification_mark_2]|select|join(' · ') or '-' }}</td>
+        <td><span class="pill {{ 'bad' if a.status.value in ['impounded','tag_missing'] else 'mute' }}">{{ a.status.value }}</span></td>
+        <td class="muted">{{ a.created_at.strftime('%d %b %Y') }}</td>
+      </tr>
+    {% else %}<tr><td colspan="9" class="muted">No animals registered to this owner.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card" style="margin-top:1rem">
+  <h2>History ({{ events|length }} most recent)</h2>
+  <table>
+    <thead><tr><th>When</th><th>Event</th><th>Details</th></tr></thead>
+    <tbody>
+    {% for e in events %}
+      <tr><td class="muted">{{ e.occurred_at.strftime('%d %b %Y %H:%M') }}</td>
+          <td><span class="pill">{{ e.type.value }}</span></td>
+          <td class="mono muted">{{ e.payload|tojson }}</td></tr>
+    {% else %}<tr><td colspan="3" class="muted">No events.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if scope.can_merge_owners and not owner.merged_into %}
+<div class="card" style="margin-top:1rem">
+  <h2>Merge a duplicate into this record</h2>
+  <p class="legend">The other record is marked as merged and its animals move here. Nothing is deleted, and the merge itself is recorded in the audit log.</p>
+  <div class="filters">
+    <label class="f">Duplicate record
+      <select id="merge-source">
+        <option value="">Choose…</option>
+        {% for o in all_owners %}<option value="{{ o.id }}">{{ o.name }}: {{ o.ward_or_village or '' }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="f">Reason<input id="merge-reason" placeholder="e.g. same phone, same household"></label>
+    <button id="merge-go" class="sec">Merge</button>
+  </div>
+  <p id="merge-msg" class="legend"></p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if scope.can_merge_owners and not owner.merged_into %}
+<script nonce="{{ csp_nonce }}">
+document.getElementById("merge-go").addEventListener("click", async function () {
+  const src = document.getElementById("merge-source").value;
+  const reason = document.getElementById("merge-reason").value;
+  const msg = document.getElementById("merge-msg");
+  if (!src || reason.length < 3) { msg.textContent = "Choose a record and give a reason."; return; }
+  try {
+    await gt.api("POST", "/api/owners/{{ owner.id }}/merge", { source_id: src, reason: reason });
+    location.reload();
+  } catch (e) { msg.textContent = "Merge failed: " + e.message; }
+});
+</script>
+{% endif %}
+{% endblock %}

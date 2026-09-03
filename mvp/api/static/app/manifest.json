@@ -1,0 +1,16 @@
+{
+  "name": "GauTrack Field — Rewari",
+  "short_name": "GauTrack",
+  "description": "Field registration of cattle keepers, animals and road sightings for Rewari district.",
+  "start_url": "/app/",
+  "scope": "/app/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f6f4",
+  "theme_color": "#12603f",
+  "lang": "en",
+  "icons": [
+    { "src": "/app/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/app/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

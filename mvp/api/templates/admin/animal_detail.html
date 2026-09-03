@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Animal {{ animal.tag_id or animal.id }}: GauTrack{% endblock %}
+{% block content %}
+<p class="muted"><a href="/admin/animals">&larr; All animals</a></p>
+<h1 class="mono">{{ animal.tag_id or 'Untagged animal' }}</h1>
+
+<div class="grid cards2">
+  <div class="card">
+    <h2>Animal</h2>
+    <table>
+      <tr><th>Record id</th><td class="mono">{{ animal.id }}</td></tr>
+      <tr><th>Tag</th><td class="mono">{{ animal.tag_id or '-' }} <span class="pill mute">{{ animal.tag_type.value }}</span></td></tr>
+      <tr><th>Secondary tag</th><td class="mono">{{ animal.secondary_tag_id or '-' }}</td></tr>
+      <tr><th>Species / sex / age</th><td>{{ animal.species.value }} · {{ animal.sex.value }} · {{ animal.age_class.value }}
+          {% if animal.age_years is not none %}<span class="pill mute">{{ '%g'|format(animal.age_years) }} years</span>{% endif %}</td></tr>
+      <tr><th>Breed</th><td>{{ animal.breed or '-' }}</td></tr>
+      <tr><th>Colour / markings</th><td>{{ animal.colour_markings or '-' }}</td></tr>
+      {# The two natural marks.  If the tag is ever cut off — the tampering the
+         council rated most likely — these plus the muzzle photograph are what
+         is left to identify the animal. #}
+      <tr><th>Identification mark 1</th><td>{{ animal.identification_mark_1 or '-' }}</td></tr>
+      <tr><th>Identification mark 2</th><td>{{ animal.identification_mark_2 or '-' }}</td></tr>
+      <tr><th>Status</th><td><span class="pill {{ 'bad' if animal.status.value in ['impounded','tag_missing','on_road_reported'] else 'mute' }}">{{ animal.status.value }}</span></td></tr>
+      <tr><th>Owner</th><td>{% if owner %}<a href="/admin/owners/{{ owner.id }}">{{ owner.name }}</a>{% else %}<span class="pill warn">ownerless / stray</span>{% endif %}</td></tr>
+      <tr><th>Registered</th><td>{{ animal.created_at.strftime('%d %b %Y %H:%M') }}</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h2>Photos</h2>
+    {% if animal.photo_id %}
+      <img src="/api/photos/{{ animal.photo_id }}" alt="Animal photograph" style="max-width:100%;border-radius:8px">
+    {% else %}<p class="muted">No photograph on file.</p>{% endif %}
+    {% if animal.muzzle_photo_id %}
+      <p class="legend" style="margin-top:.6rem">Muzzle close-up (biometric backup if the tag is cut off):</p>
+      <img src="/api/photos/{{ animal.muzzle_photo_id }}" alt="Muzzle close-up" style="max-width:60%;border-radius:8px">
+    {% endif %}
+  </div>
+</div>
+
+<div class="card" style="margin-top:1rem">
+  <h2>Timeline ({{ events|length }})</h2>
+  <table>
+    <thead><tr><th>When</th><th>Event</th><th>Officer</th><th>Where</th><th>Details</th><th>Chain hash</th></tr></thead>
+    <tbody>
+    {% for e in events %}
+      <tr>
+        <td class="muted">{{ e.occurred_at.strftime('%d %b %Y %H:%M') }}</td>
+        <td><span class="pill {{ 'bad' if e.type.value in ['sighting_road','impound','fine_issued','tag_lost'] else '' }}">{{ e.type.value }}</span></td>
+        <td>{{ users.get(e.user_id, 'public report' if e.user_id is none else '-') }}</td>
+        <td class="mono muted">{% if e.lat %}{{ "%.4f"|format(e.lat) }}, {{ "%.4f"|format(e.lng) }}{% else %}-{% endif %}</td>
+        <td class="mono muted">{{ e.payload|tojson }}</td>
+        <td class="mono muted" title="{{ e.hash }}">{{ e.hash[:10] }}…</td>
+      </tr>
+    {% else %}<tr><td colspan="6" class="muted">No events.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  <p class="legend">Each row is chained to the one before it with a SHA-256 hash, so a row cannot be altered or removed without the chain check failing.</p>
+</div>
+{% endblock %}

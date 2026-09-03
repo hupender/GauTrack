@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Fines: GauTrack{% endblock %}
+{% block content %}
+<h1>Fines <span class="muted" style="font-weight:400">· ₹{{ "{:,.0f}".format(total) }} issued in your scope</span></h1>
+{% if user.role.value in ["super_admin","ulb_admin","auditor"] %}
+<p class="muted" style="margin-top:-6px"><a href="/api/export/fines.csv">Download CSV</a> <span style="opacity:.7">(add <code>?from=YYYY-MM-DD&amp;to=YYYY-MM-DD</code> to slice by date)</span></p>
+{% endif %}
+<div class="card">
+<table>
+  <thead><tr><th>Owner</th><th class="right">Offence #</th><th class="right">Amount</th><th>Status</th><th>Receipt</th><th>Issued</th><th>Paid</th></tr></thead>
+  <tbody>
+  {% for f in items %}
+    <tr>
+      <td>{% if f.owner_id %}<a href="/admin/owners/{{ f.owner_id }}">{{ owners.get(f.owner_id, '-') }}</a>{% else %}-{% endif %}</td>
+      <td class="right">{% if f.offence_number >= 3 %}<span class="pill bad">{{ f.offence_number }}: FIR</span>
+          {% elif f.offence_number == 2 %}<span class="pill warn">{{ f.offence_number }}</span>
+          {% else %}{{ f.offence_number }}{% endif %}</td>
+      <td class="right">₹{{ "{:,.0f}".format(f.amount) }}</td>
+      <td><span class="pill {{ 'good' if f.status.value=='paid' else 'warn' }}">{{ f.status.value }}</span></td>
+      <td class="mono">{{ f.receipt_no or '-' }}</td>
+      <td class="muted">{{ f.issued_at.strftime('%d %b %Y') }}</td>
+      <td class="muted">{{ f.paid_at.strftime('%d %b %Y') if f.paid_at else '-' }}</td>
+    </tr>
+  {% else %}<tr><td colspan="7" class="muted">No fines issued.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="legend">Amounts come from the <strong>fine_schedule</strong> table, seeded with a placeholder (₹5,100 / ₹10,000 / ₹15,000 plus a ₹2,000 catching charge). The DMC must confirm the statutory schedule before go-live.</p>
+{% endblock %}

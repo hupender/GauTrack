@@ -1,0 +1,32 @@
+# GauTrack — development stack: Postgres only, no Caddy, no containerised API.
+# The API runs on the host out of mvp/.venv so you get reload + a debugger.
+#
+#   docker compose -f docker-compose.dev.yml up -d
+#   make dev
+#
+# NOTE: this file DOES publish 55432 on 127.0.0.1 so the host-side API can
+# connect.  That is a development-only affordance; docker-compose.yml (prod)
+# publishes nothing.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gautrack}
+      POSTGRES_USER: ${POSTGRES_OWNER_USER:-gautrack_owner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devowner}
+      APP_DB_USER: ${POSTGRES_APP_USER:-gautrack_app}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-devapp}
+    volumes:
+      - dev_db_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:55432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  dev_db_data:

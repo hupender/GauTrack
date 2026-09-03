@@ -1,0 +1,21 @@
+# Repository-wide ignores.  mvp/.gitignore adds the ones specific to the app.
+.DS_Store
+*.swp
+
+# Build scratch for the PDFs
+mvp/.build/
+
+# Anything that has ever held a secret or real personal data must never be
+# committed, even to a private repository: a repository can be made public by
+# one wrong click, and a photograph of somebody's cattle shed is personal data.
+**/.env
+**/.seed_credentials.txt
+mvp/data/
+mvp/backups/
+
+# Editor / assistant state and generated documents.  The PDFs and
+# WALKTHROUGH.html are rebuilt with `cd mvp && make docs`.
+.claude/
+.impeccable/
+*.pdf
+mvp/WALKTHROUGH.html

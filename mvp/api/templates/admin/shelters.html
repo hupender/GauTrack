@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Shelters: GauTrack{% endblock %}
+{% block content %}
+<h1>Gaushalas, nandi-shalas and cattle pounds</h1>
+<div class="card">
+<table>
+  <thead><tr><th>Name</th><th>Kind</th><th class="right">Occupied</th><th class="right">Capacity</th><th style="width:30%">Load</th></tr></thead>
+  <tbody>
+  {% for s in items %}
+    <tr>
+      <td>{{ s.name }}</td>
+      <td><span class="pill mute">{{ s.kind }}</span></td>
+      <td class="right">{{ s.current_count }}</td>
+      <td class="right">{{ s.capacity }}</td>
+      <td><div class="bar"><i style="width:{{ [s.pct, 100]|min }}%"></i></div>
+          <span class="legend">{{ s.pct }}%</span></td>
+    </tr>
+  {% else %}<tr><td colspan="5" class="muted">No shelters configured.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="legend">Occupancy moves automatically: a <em>gaushala_intake</em> event adds one, a <em>release</em> event removes one.</p>
+{% endblock %}

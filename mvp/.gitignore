@@ -1,0 +1,15 @@
+.venv/
+.pgdata/
+.env
+.seed_credentials.txt
+data/
+photos/
+backups/
+__pycache__/
+*.pyc
+.pytest_cache/
+.DS_Store
+
+# local TLS demo artefacts
+.caddy/
+api/static/rootca.crt

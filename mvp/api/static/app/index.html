@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12603f">
+<title>GauTrack Field</title>
+<link rel="manifest" href="/app/manifest.json">
+<link rel="icon" href="/app/icon-192.png">
+<link rel="apple-touch-icon" href="/app/icon-192.png">
+<link rel="stylesheet" href="/app/styles.css">
+</head>
+<body>
+<div id="demo-banner" class="demo" hidden>DEMO DATA: not a live registry</div>
+<div id="offline-bar" class="offline-bar" hidden>Offline: entries are saved on this phone and will upload automatically</div>
+
+<header>
+  <div>
+    <span class="title">GauTrack</span>
+    <span class="sub" id="who">Rewari district field app</span>
+  </div>
+  <div class="spacer"></div>
+  <span class="badge" id="sync-badge" title="Entries waiting to upload">0</span>
+  <button class="ghost" id="btn-home" hidden>Home</button>
+  <button class="ghost" id="btn-logout" hidden>Sign out</button>
+</header>
+
+<main>
+  <!-- ---------------------------------------------------------------- login -->
+  <section id="s-login" class="screen on">
+    <h1>Sign in</h1>
+    <div class="card">
+      <div id="login-msg"></div>
+      <label><span>Username</span><input id="li-user" autocapitalize="none" autocomplete="username"></label>
+      <label><span>Password</span><input id="li-pass" type="password" autocomplete="current-password"></label>
+      <label><span>One-time code (only if enabled)</span><input id="li-totp" inputmode="numeric" autocomplete="one-time-code"></label>
+      <button class="full" id="li-go">Sign in</button>
+      <p class="small muted" style="margin-bottom:0">You must be online to sign in. After that the app keeps working without a network.</p>
+    </div>
+  </section>
+
+  <!-- ----------------------------------------------------------------- home -->
+  <section id="s-home" class="screen">
+    <h1 id="home-title">Field actions</h1>
+    <div class="big-grid">
+      <button class="big primary" data-go="owner">Register Owner</button>
+      <button class="big primary" data-go="animal">Register Animal</button>
+      <button class="big" data-go="road">Animal on Road</button>
+      <button class="big" data-go="impound">Impound</button>
+      <button class="big" data-go="lookup">Lookup Tag</button>
+      <button class="big" data-go="sync">Sync<span class="hi" id="home-sync-sub">0 pending</span></button>
+    </div>
+    <p class="small muted" style="margin-top:1rem">Signed in as <strong id="home-user"></strong>. Everything you save works offline and uploads by itself when there is a signal.</p>
+  </section>
+
+  <!-- ---------------------------------------------------------- owner form -->
+  <section id="s-owner" class="screen">
+    <h1>Register Owner</h1>
+    <div class="card">
+      <div id="owner-msg"></div>
+      <label><span class="req">Name</span><input id="ow-name"></label>
+      <label><span>Father's / Husband's name</span><input id="ow-relation"></label>
+      <label><span>Phone</span><input id="ow-phone" inputmode="numeric" maxlength="15"></label>
+      <label><span>Ward / Village</span><input id="ow-village" list="villages">
+        <datalist id="villages">
+          <option>Kosli</option><option>Bawal</option><option>Dharuhera</option><option>Masani</option>
+          <option>Kund</option><option>Jatusana</option><option>Nahar</option>
+        </datalist>
+      </label>
+      <label><span>Keeper type</span>
+        <select id="ow-keeper">
+          <option value="household">household</option>
+          <option value="dairy_tabela">dairy / tabela</option>
+          <option value="commercial">commercial</option>
+          <option value="gaushala">gaushala</option>
+          <option value="trader">trader</option>
+          <option value="other">other</option>
+        </select>
+      </label>
+      <label><span>Cattle owned (as stated by the keeper)</span>
+        <input id="ow-declared" inputmode="numeric" maxlength="4" placeholder="e.g. 4">
+        <small class="hint">Ask before counting. Write down what they say, even if it looks wrong.</small></label>
+      <label><span>Premises area (square yards)</span>
+        <input id="ow-area" inputmode="decimal" maxlength="9" placeholder="e.g. 250">
+        <small class="hint">Rough size of the shed or plot. Gaz / square yards, not square metres.</small></label>
+      <label><span>Address</span><textarea id="ow-address" rows="2"></textarea></label>
+      <label><span>Notes</span><textarea id="ow-notes" rows="2"></textarea></label>
+      <label><span>Photograph (optional)</span>
+        <input id="ow-photo" type="file" accept="image/*" capture="environment"></label>
+      <img id="ow-thumb" class="thumb" hidden alt="">
+      <div class="gps" id="ow-gps"></div>
+      <div class="row" style="margin-top:.8rem">
+        <button class="sec" data-gps="ow">Retry GPS</button>
+        <button id="ow-save">Save</button>
+      </div>
+    </div>
+    <p class="small muted">ULB is locked to your posting. Aadhaar numbers are never collected.</p>
+  </section>
+
+  <!-- --------------------------------------------------------- animal form -->
+  <section id="s-animal" class="screen">
+    <h1>Register Animal</h1>
+    <div class="card">
+      <div id="animal-msg"></div>
+      <label><span class="req">Owner</span>
+        <input id="an-owner-search" placeholder="Type a name or phone">
+        <select id="an-owner" size="4" style="margin-top:.4rem"></select>
+      </label>
+      <label><span>Species</span>
+        <div class="chips" id="an-species">
+          <button type="button" data-v="cattle" class="on">Cow</button>
+          <button type="button" data-v="buffalo">Buffalo</button>
+        </div>
+      </label>
+      <label><span>Sex</span>
+        <div class="chips" id="an-sex">
+          <button type="button" data-v="female" class="on">Female</button>
+          <button type="button" data-v="male">Male</button>
+          <button type="button" data-v="unknown">Unknown</button>
+        </div>
+      </label>
+      <label><span>Age</span>
+        <div class="chips" id="an-age">
+          <button type="button" data-v="calf">Calf</button>
+          <button type="button" data-v="young">Young</button>
+          <button type="button" data-v="adult" class="on">Adult</button>
+          <button type="button" data-v="old">Old</button>
+        </div>
+      </label>
+      <label><span>Age in years</span>
+        <input id="an-age-years" inputmode="decimal" maxlength="4" placeholder="e.g. 6 or 2.5">
+        <small class="hint">As stated by the keeper. Leave blank if not known.</small></label>
+      <label><span>Breed</span><input id="an-breed" list="breeds">
+        <datalist id="breeds">
+          <option>Sahiwal</option><option>HF cross</option><option>Jersey cross</option>
+          <option>Murrah</option><option>Desi/Non-descript</option><option>Haryana</option>
+        </datalist>
+      </label>
+      <label><span>Colour / markings</span><input id="an-colour"></label>
+      <label><span>Identification mark 1 (optional)</span>
+        <input id="an-mark1" maxlength="120" list="marks"
+               placeholder="e.g. broken left horn"></label>
+      <label><span>Identification mark 2 (optional)</span>
+        <input id="an-mark2" maxlength="120" list="marks"
+               placeholder="e.g. white patch on forehead">
+        <small class="hint">Natural marks identify the animal if the tag is cut off. Not required.</small></label>
+      <datalist id="marks">
+        <option>Broken left horn</option><option>Broken right horn</option>
+        <option>Torn left ear</option><option>Torn right ear</option>
+        <option>White patch on forehead</option><option>White socks on hind legs</option>
+        <option>Black patch on flank</option><option>Short/stumpy tail</option>
+        <option>Limp in hind leg</option><option>Hump scar</option>
+      </datalist>
+      <label><span>Tag type</span>
+        <select id="an-tagtype">
+          <option value="pashu_aadhaar_12">Pashu Aadhaar (12 digits)</option>
+          <option value="rfid_lf">RFID (LF)</option>
+          <option value="rfid_uhf">RFID (UHF)</option>
+          <option value="visual">Visual tag</option>
+          <option value="microchip">Microchip</option>
+          <option value="none">No tag</option>
+        </select>
+      </label>
+      <label><span>Tag number</span>
+        <input id="an-tag" inputmode="numeric" maxlength="40" autocomplete="off"
+               placeholder="Scan or type: 12 digits for Pashu Aadhaar"></label>
+      <label><span class="req">Photograph</span>
+        <input id="an-photo" type="file" accept="image/*" capture="environment"></label>
+      <img id="an-thumb" class="thumb" hidden alt="">
+      <label><span>Muzzle close-up (optional, helps if the tag is cut off)</span>
+        <input id="an-muzzle" type="file" accept="image/*" capture="environment"></label>
+      <div class="gps" id="an-gps"></div>
+      <div class="row" style="margin-top:.8rem">
+        <button class="sec" data-gps="an">Retry GPS</button>
+        <button id="an-save">Save</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ----------------------------------------------------------- on the road -->
+  <section id="s-road" class="screen">
+    <h1>Animal on Road</h1>
+    <div class="card">
+      <div id="road-msg"></div>
+      <label><span>Tag number</span>
+        <div class="row">
+          <input id="rd-tag" inputmode="numeric" maxlength="40" placeholder="Scan or type">
+          <button class="sec" id="rd-lookup" style="flex:0 0 auto">Look up</button>
+        </div>
+      </label>
+      <div id="rd-found"></div>
+      <label><span>Or record it as untagged</span>
+        <button class="sec full" id="rd-notag" type="button">No tag</button></label>
+      <label><span class="req">Photograph</span>
+        <input id="rd-photo" type="file" accept="image/*" capture="environment"></label>
+      <img id="rd-thumb" class="thumb" hidden alt="">
+      <label><span>Notes</span><textarea id="rd-notes" rows="2" placeholder="e.g. NH-48 near flyover"></textarea></label>
+      <div class="gps" id="rd-gps"></div>
+      <p class="small muted" style="margin-top:.8rem">Then choose the action:</p>
+      <div class="row">
+        <button class="sec" id="rd-warn">Warn</button>
+        <button class="sec" id="rd-impound">Impound</button>
+        <button class="danger" id="rd-fine">Fine</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- --------------------------------------------------------- impound stray -->
+  <section id="s-impound" class="screen">
+    <h1>Impound untagged animal</h1>
+    <div class="card">
+      <div id="imp-msg"></div>
+      <p class="small muted">For a stray with no owner: this creates the animal record with no owner, marks it impounded and books it into a shelter.</p>
+      <label><span>Species</span>
+        <div class="chips" id="imp-species">
+          <button type="button" data-v="cattle" class="on">Cow</button>
+          <button type="button" data-v="buffalo">Buffalo</button>
+        </div>
+      </label>
+      <label><span>Sex</span>
+        <div class="chips" id="imp-sex">
+          <button type="button" data-v="male" class="on">Male</button>
+          <button type="button" data-v="female">Female</button>
+          <button type="button" data-v="unknown">Unknown</button>
+        </div>
+      </label>
+      <label><span>Age</span>
+        <div class="chips" id="imp-age">
+          <button type="button" data-v="calf">Calf</button>
+          <button type="button" data-v="young">Young</button>
+          <button type="button" data-v="adult" class="on">Adult</button>
+          <button type="button" data-v="old">Old</button>
+        </div>
+      </label>
+      <label><span>Colour / markings</span><input id="imp-colour"></label>
+      <label><span>Identification mark 1 (optional)</span>
+        <input id="imp-mark1" maxlength="120" list="marks" placeholder="e.g. broken left horn"></label>
+      <label><span>Identification mark 2 (optional)</span>
+        <input id="imp-mark2" maxlength="120" list="marks" placeholder="e.g. torn right ear">
+        <small class="hint">For an untagged stray these marks are the only identity the record has.</small></label>
+      <label><span>Age in years (estimate)</span>
+        <input id="imp-age-years" inputmode="decimal" maxlength="4" placeholder="e.g. 3"></label>
+      <label><span class="req">Photograph</span>
+        <input id="imp-photo" type="file" accept="image/*" capture="environment"></label>
+      <img id="imp-thumb" class="thumb" hidden alt="">
+      <label><span>Shelter</span><select id="imp-shelter"></select></label>
+      <div class="gps" id="imp-gps"></div>
+      <div class="row" style="margin-top:.8rem">
+        <button class="sec" data-gps="imp">Retry GPS</button>
+        <button id="imp-save">Impound</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------- lookup -->
+  <section id="s-lookup" class="screen">
+    <h1>Lookup Tag</h1>
+    <div class="card">
+      <label><span>Tag number</span>
+        <div class="row">
+          <input id="lk-tag" inputmode="numeric" maxlength="40" placeholder="Scan or type">
+          <button class="sec" id="lk-go" style="flex:0 0 auto">Search</button>
+        </div>
+      </label>
+      <div id="lk-out"></div>
+    </div>
+  </section>
+
+  <!-- --------------------------------------------------------------- sync -->
+  <section id="s-sync" class="screen">
+    <h1>Sync</h1>
+    <div class="card">
+      <div id="sync-msg"></div>
+      <div class="row">
+        <button id="sy-now">Upload now</button>
+        <button class="sec" id="sy-clear-done">Clear finished</button>
+      </div>
+      <ul class="list" id="sy-list"></ul>
+    </div>
+    <p class="small muted">Entries stay on this phone until the server confirms each one. Closing the app or losing signal does not lose them.</p>
+  </section>
+</main>
+
+<script src="/app/app.js"></script>
+</body>
+</html>

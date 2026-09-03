@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Audit log: GauTrack{% endblock %}
+{% block content %}
+<h1>Audit log</h1>
+
+<div class="card" style="margin-bottom:1rem">
+  <h2>Tamper check</h2>
+  <p class="legend">Every audit row carries <code>hash = SHA-256(previous hash + this row)</code>. Re-computing the whole chain proves that no row has been edited, inserted or deleted behind the application's back.</p>
+  <button id="verify">Verify chain</button>
+  <span id="verify-out" style="margin-left:.7rem"></span>
+</div>
+
+<form class="filters" method="get" action="/admin/audit">
+  <label class="f">Table<input name="table" value="{{ table }}" placeholder="owners / animals / users / fines / shelters"></label>
+  <label class="f">Row id<input name="row_id" value="{{ row_id }}" class="mono"></label>
+  <button type="submit">Filter</button>
+</form>
+
+<div class="card">
+<table>
+  <thead><tr><th>#</th><th>When (UTC)</th><th>Actor</th><th>IP</th><th>Action</th><th>Table</th><th>Row</th><th>Change</th><th>Hash</th></tr></thead>
+  <tbody>
+  {% for r in items %}
+    <tr>
+      <td class="mono muted">{{ r.id }}</td>
+      <td class="muted">{{ r.ts.strftime('%d %b %Y %H:%M:%S') }}</td>
+      <td class="mono muted">{{ (r.actor_user_id|string)[:8] if r.actor_user_id else 'system' }}</td>
+      <td class="mono muted">{{ r.ip or '-' }}</td>
+      <td><span class="pill {{ 'bad' if r.action=='DELETE' else ('warn' if r.action=='UPDATE' else 'good') }}">{{ r.action }}</span></td>
+      <td>{{ r.table_name }}</td>
+      <td class="mono muted">{{ (r.row_id or '')[:8] }}</td>
+      <td class="mono muted"><details><summary>diff</summary>
+        <div style="max-width:520px;white-space:pre-wrap">before: {{ r.before|tojson }}
+after:  {{ r.after|tojson }}</div></details></td>
+      <td class="mono muted" title="{{ r.hash }}">{{ r.hash[:10] }}…</td>
+    </tr>
+  {% else %}<tr><td colspan="9" class="muted">No audit rows.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}">
+document.getElementById("verify").addEventListener("click", async function () {
+  const out = document.getElementById("verify-out");
+  out.textContent = "checking…";
+  try {
+    const r = await fetch("/api/audit/verify", { credentials: "same-origin" }).then(x => x.json());
+    if (r.ok) {
+      out.className = "chain-ok";
+      out.textContent = "OK: audit chain " + r.audit_log.rows + " rows, event chain " + r.events.rows +
+        " rows. Tip " + r.audit_log.tip_hash.slice(0, 16) + "…";
+    } else {
+      const b = (r.audit_log.first_broken || r.events.first_broken) || {};
+      out.className = "chain-bad";
+      out.textContent = "BROKEN: first bad row: " + JSON.stringify(b.id || b.seq);
+    }
+  } catch (e) { out.className = "chain-bad"; out.textContent = "check failed: " + e.message; }
+});
+</script>
+{% endblock %}

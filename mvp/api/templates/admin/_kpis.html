@@ -1,0 +1,103 @@
+{# The headline strip.  HTMX re-fetches this fragment every 60 s (SPEC §5).
+
+   Two rules govern it:
+   * ONE line.  `--n` fixes the column count and the numbers are sized in `vw`,
+     so nine figures stay side by side on a 16:9 screen instead of spilling on
+     to a second row that pushes the charts below the fold.
+   * Every card carries its own provenance in data-ins-* attributes.  Clicking
+     it turns the card over and shows exactly that, plus a link into the rows
+     the figure was counted from — so no number on this page is unaccountable.
+#}
+{% set f = qs(ulb=ulb) %}
+{% set tcls = pct_class(summary.tagged_pct) %}
+<div class="grid kpis" style="--n:9">
+
+  <div class="card kpi" data-insight
+       data-ins-title="Owners registered"
+       data-ins-what="Cattle keepers with a record in the register: name, ward or village, keeper type and location. Records merged into another as duplicates are excluded, so one household is counted once."
+       data-ins-source="owners — WHERE merged_into IS NULL"
+       data-ins-scope="{{ 'All ULBs in the district' if not ulb else 'Filtered to the selected ULB' }}, and never wider than your own posting."
+       data-ins-api="/api/stats/summary{{ f }}"
+       data-ins-link="/admin/owners{{ f }}" data-ins-link-label="Open the owner register">
+    <div class="n">{{ "{:,}".format(summary.owners) }}</div><div class="l">Owners registered</div></div>
+
+  <div class="card kpi" data-insight
+       data-ins-title="Animals registered"
+       data-ins-what="Every animal with a record, tagged or not, including strays impounded with no owner. This is the denominator for tagging coverage."
+       data-ins-source="animals — all rows in scope"
+       data-ins-scope="{{ 'All ULBs in the district' if not ulb else 'Filtered to the selected ULB' }}"
+       data-ins-api="/api/stats/summary{{ f }}"
+       data-ins-link="/admin/animals{{ f }}" data-ins-link-label="Open the animal register">
+    <div class="n">{{ "{:,}".format(summary.animals) }}</div><div class="l">Animals registered</div></div>
+
+  <div class="card kpi" data-insight
+       data-ins-title="Tagging coverage"
+       data-ins-what="The share of registered animals carrying a tag number. This is the single figure the enforcement model rests on: an untagged animal on the road cannot be traced to an owner, so coverage is what converts a sighting into accountability."
+       data-ins-source="count(animals WHERE tag_id IS NOT NULL) ÷ count(animals)"
+       data-ins-scope="Green at 75% and above, amber from 40%, red below 40%."
+       data-ins-api="/api/stats/summary{{ f }}"
+       data-ins-link="/admin/animals{{ f }}" data-ins-link-label="Open the animal register">
+    <div class="n pctn {{ tcls }}">{{ summary.tagged_pct }}%</div><div class="l">Tagged</div>
+    <div class="sub">{{ "{:,}".format(summary.tagged) }} of {{ "{:,}".format(summary.animals) }}</div>
+    <div class="bar" style="margin-top:.35rem"><i class="{{ tcls }}" style="width:{{ summary.tagged_pct }}%"></i></div></div>
+
+  <div class="card kpi" data-insight
+       data-ins-title="Tagged today"
+       data-ins-what="Animals registered with a tag since midnight. This is the day's throughput: at this rate you can read off how many days the remaining untagged animals will take."
+       data-ins-source="animals — WHERE created_at::date = current_date AND tag_id IS NOT NULL"
+       data-ins-scope="Server date, Asia/Kolkata."
+       data-ins-api="/api/stats/summary{{ f }}"
+       data-ins-link="/admin/animals{{ f }}" data-ins-link-label="Open the animal register">
+    <div class="n">{{ summary.tagged_today }}</div><div class="l">Tagged today</div></div>
+
+  <div class="card kpi" data-insight
+       data-ins-title="Road sightings, last 7 days"
+       data-ins-what="Cattle recorded on a public road by a field officer in the past seven days. Each one is a geo-tagged, photographed event with an officer's name against it."
+       data-ins-source="events — WHERE type = 'sighting_road' AND occurred_at &gt; now() - 7 days"
+       data-ins-scope="Officer-recorded only."
+       data-ins-caveat="Unverified public reports are deliberately excluded from this figure: an open channel must not be able to manufacture a spike the day before a review. They remain visible in the events feed for officers to verify."
+       data-ins-api="/api/stats/summary{{ f }}"
+       data-ins-link="/admin/events{{ qs(type='sighting_road', ulb=ulb) }}" data-ins-link-label="Open the sighting events">
+    <div class="n">{{ summary.sightings_7d }}</div><div class="l">Road sightings (7d)</div>
+    <div class="sub">{{ summary.sightings_today }} today</div></div>
+
+  <div class="card kpi" data-insight
+       data-ins-title="Impounded now"
+       data-ins-what="Animals currently held after being picked up, before release to an owner or transfer to a shelter. A live count, not a running total."
+       data-ins-source="animals — WHERE status = 'impounded'"
+       data-ins-scope="Current status, as of the last field upload."
+       data-ins-api="/api/stats/summary{{ f }}"
+       data-ins-link="/admin/animals{{ qs(status='impounded', ulb=ulb) }}" data-ins-link-label="Open the impounded animals">
+    <div class="n">{{ summary.impounded_now }}</div><div class="l">Impounded now</div></div>
+
+  <div class="card kpi" data-insight
+       data-ins-title="In gaushala"
+       data-ins-what="Animals booked into a gaushala or nandi-shala. These are mostly the ownerless animals — male calves, old cows, bulls — that no fine can ever reach, which is why shelter capacity is the binding constraint on the whole plan."
+       data-ins-source="animals — WHERE status = 'in_gaushala'"
+       data-ins-scope="Shelter beds figure is sum(current_count) / sum(capacity) over shelters in scope."
+       data-ins-api="/api/stats/shelters{{ f }}"
+       data-ins-link="/admin/shelters" data-ins-link-label="Open the shelter register">
+    <div class="n">{{ summary.in_gaushala }}</div><div class="l">In gaushala</div>
+    <div class="sub">{{ summary.shelter_occupancy }} / {{ summary.shelter_capacity }} shelter beds</div></div>
+
+  <div class="card kpi" data-insight
+       data-ins-title="Fines issued"
+       data-ins-what="The rupee value of every penalty notice raised, with the amount collected shown beneath. The gap between the two is the enforcement gap: notices that were issued but never paid."
+       data-ins-source="fines — sum(amount), and sum(amount) FILTER (WHERE status = 'paid')"
+       data-ins-scope="Every fine row carries the legal instrument its amount rests on (authority_ref), copied at the moment it was issued."
+       data-ins-api="/api/stats/summary{{ f }}"
+       data-ins-link="/admin/fines" data-ins-link-label="Open the fines register">
+    <div class="n">₹{{ "{:,.0f}".format(summary.fines_amount) }}</div><div class="l">Fines issued</div>
+    <div class="sub">₹{{ "{:,.0f}".format(summary.fines_collected) }} collected · {{ summary.fines_issued }} notices</div></div>
+
+  <div class="card kpi" data-insight
+       data-ins-title="Repeat offenders"
+       data-ins-what="Owners with two or more fines. A small number here that keeps growing is the signal that penalties alone are not changing behaviour for a hard core of keepers, and that escalation is needed."
+       data-ins-source="fines — GROUP BY owner_id HAVING count(*) &gt; 1"
+       data-ins-scope="Counts owners, not fines."
+       data-ins-api="/api/stats/repeat_offenders{{ f }}"
+       data-ins-link="/admin/fines" data-ins-link-label="Open the fines register">
+    <div class="n">{{ summary.repeat_offenders }}</div><div class="l">Repeat offenders</div>
+    <div class="sub">2+ fines</div></div>
+</div>
+<p class="legend">Updated {{ summary.generated_at[11:19] }} UTC · refreshes automatically every 60 seconds · click any card to see where its number comes from.</p>

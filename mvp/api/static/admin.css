@@ -1,0 +1,300 @@
+:root{
+  --bg:#f6f7f5; --card:#ffffff; --ink:#16211c; --muted:#5d6b64; --line:#dfe4e0;
+  --accent:#12603f; --accent-soft:#e6f0ea; --warn:#a4560c; --bad:#a32218; --good:#1d7a4c;
+  --radius:10px; --shadow:0 1px 2px rgba(20,35,28,.06), 0 4px 14px rgba(20,35,28,.05);
+
+  /* --- categorical series palette -----------------------------------------
+     One hue per chart, and one hue per series within a chart.  Drawn from the
+     colours of the subject rather than from a screen palette: hide, dun,
+     brick, clay, husk, slate.  A dashboard about cattle in Haryana has no
+     business being lit in electric blue and violet.
+
+     Two constraints the palette has to keep.  Green is deliberately NOT in the
+     list: on these dashboards green means "a good percentage" and nothing
+     else, so it can never be spent on "buffalo" or "Bawal".  And every colour
+     here clears 3:1 contrast on the white card, checked, because a chart
+     nobody can read is not a softer chart, it is a broken one. */
+  --c1:#8a5a2b;  /* hide      -- warm mid brown  */
+  --c2:#b3762a;  /* dun       -- ochre           */
+  --c3:#6b4423;  /* dark hide -- deep brown      */
+  --c4:#54707a;  /* slate     -- cool grey-blue  */
+  --c5:#9c4a2f;  /* brick     -- burnt sienna    */
+  --c6:#7d7a52;  /* husk      -- dry fodder      */
+  --c7:#c08a3e;  /* straw     -- light ochre     */
+  --c8:#5a5750;  /* stone     -- warm dark grey  */
+
+  /* --- percentage scale ----------------------------------------------------
+     The only place green/yellow/red are allowed.  Direction is decided by the
+     caller: coverage uses .pct-* where high is good, shelter load uses the same
+     classes with the thresholds inverted server-side. */
+  --pct-good:#15803d; --pct-mid:#ca8a04; --pct-bad:#b91c1c;
+  --pct-good-bg:#dcf2e4; --pct-mid-bg:#fbf0cf; --pct-bad-bg:#fbe1de;
+
+  /* --- fluid sizing --------------------------------------------------------
+     Every dashboard number and chart is sized from the viewport, so a 9-across
+     KPI strip stays on ONE line from a 13" laptop up to a 16:9 boardroom
+     screen instead of wrapping onto a second row. */
+  --gap:clamp(.45rem,.6vw,1rem);
+  --kpi-n:clamp(1.05rem,1.5vw,2rem);
+  --kpi-l:clamp(.6rem,.63vw,.78rem);
+  --kpi-sub:clamp(.55rem,.56vw,.7rem);
+  --chart-h:clamp(150px,20vh,260px);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Devanagari",sans-serif}
+a{color:var(--accent)}
+header.topbar{background:var(--accent);color:#fff;padding:.6rem 1rem;display:flex;gap:1rem;align-items:center;flex-wrap:wrap}
+header.topbar .brand{font-weight:700;letter-spacing:.02em}
+header.topbar .brand small{display:block;font-weight:400;opacity:.8;font-size:.72rem}
+header.topbar nav{display:flex;gap:.15rem;flex-wrap:wrap;margin-left:auto}
+header.topbar nav a{color:#fff;text-decoration:none;padding:.35rem .7rem;border-radius:6px;font-size:.9rem}
+header.topbar nav a:hover{background:rgba(255,255,255,.14)}
+header.topbar nav a.on{background:rgba(255,255,255,.22);font-weight:600}
+header.topbar form{margin:0}
+header.topbar button.link{background:none;border:1px solid rgba(255,255,255,.4);color:#fff;
+  padding:.3rem .7rem;border-radius:6px;cursor:pointer;font-size:.85rem}
+.demo-banner{background:#ffe9b8;color:#6b4a05;padding:.4rem 1rem;font-size:.85rem;font-weight:600;text-align:center}
+main{padding:clamp(.6rem,1vw,1.1rem);max-width:2100px;margin:0 auto}
+h1{font-size:clamp(1.05rem,1.15vw,1.35rem);margin:.1rem 0 .6rem}
+/* Title and filter share one line so the headline figures start as high up the
+   screen as possible. */
+.page-head{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:.7rem}
+.page-head h1{margin:0}
+.page-head form.filters{margin:0 0 0 auto}
+/* Horizontal bands: each is one line of cards, stacked down the page. */
+.band{margin-top:var(--gap)}
+h2{font-size:1rem;margin:0 0 .6rem;color:var(--muted);font-weight:600}
+.grid{display:grid;gap:var(--gap)}
+/* One line, always: N equal columns that shrink rather than wrap.
+   `--n` is set per page (9 on the admin overview, 6 on the CM screen). */
+.kpis{grid-template-columns:repeat(var(--n,9),minmax(0,1fr))}
+.cards2{grid-template-columns:repeat(auto-fit,minmax(360px,1fr))}
+.row-n{grid-template-columns:repeat(var(--n,4),minmax(0,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:clamp(.55rem,.7vw,1rem);box-shadow:var(--shadow);min-width:0;
+  /* A six-column table in a one-third column is wider than its card.  It
+     scrolls inside the card; it never widens the page, which on a dashboard
+     shows up as the whole layout sliding sideways under the header. */
+  overflow-x:auto}
+.kpi{display:flex;flex-direction:column;justify-content:flex-start}
+.kpi .n{font-size:var(--kpi-n);font-weight:700;line-height:1.05;
+  font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.kpi .l{color:var(--muted);font-size:var(--kpi-l);margin-top:.15rem;line-height:1.25}
+.kpi .sub{font-size:var(--kpi-sub);color:var(--muted);margin-top:.25rem;line-height:1.3}
+
+/* Below a laptop the one-line rule stops being physically possible; step the
+   column count down rather than let a card become unreadably narrow. */
+@media (max-width:1400px){ :root{--kpi-n:clamp(1rem,1.7vw,1.6rem)} }
+@media (max-width:1150px){ .kpis{grid-template-columns:repeat(5,minmax(0,1fr))}
+                           .row-n{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:760px){  .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+                           .row-n{grid-template-columns:minmax(0,1fr)} }
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th,td{text-align:left;padding:.45rem .5rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:.8rem}
+tbody tr:hover{background:var(--accent-soft)}
+.pill{display:inline-block;padding:.1rem .5rem;border-radius:999px;font-size:.74rem;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+.pill.bad{background:#fbe3e1;color:var(--bad)} .pill.warn{background:#fdeed8;color:var(--warn)}
+.pill.good{background:#dff1e6;color:var(--good)} .pill.mute{background:#eceeed;color:var(--muted)}
+form.filters{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.9rem;align-items:end}
+label.f{display:flex;flex-direction:column;font-size:.75rem;color:var(--muted);gap:.2rem}
+input,select,textarea{font:inherit;padding:.4rem .5rem;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink)}
+button{font:inherit;padding:.42rem .9rem;border-radius:6px;border:1px solid var(--accent);
+  background:var(--accent);color:#fff;cursor:pointer}
+button.sec{background:#fff;color:var(--accent)}
+button.danger{background:#fff;color:var(--bad);border-color:var(--bad)}
+#map{border-radius:8px}
+.bar{height:9px;background:#e9ece9;border-radius:99px;overflow:hidden}
+.bar > i{display:block;height:100%;background:var(--accent);transition:width .4s ease}
+/* Percentage semantics.  `good`/`mid`/`bad` are assigned by the template from
+   the number AND its direction — high coverage is good, high shelter load is
+   not — so the same three colours read correctly in both places. */
+.bar > i.good{background:var(--pct-good)}
+.bar > i.mid{background:var(--pct-mid)}
+.bar > i.bad{background:var(--pct-bad)}
+/* A list card holds however many rows the district actually has.  The rows
+   scroll inside the card, so the card keeps its height, the band stays on one
+   line, and the page does not grow a mile of table.  The header row is sticky
+   so the columns are still readable at row 40. */
+.tscroll{overflow-y:auto;max-height:var(--tscroll-h,clamp(190px,27vh,340px));min-height:0}
+.tscroll table{margin:0}
+.tscroll thead th{position:sticky;top:0;background:var(--card);z-index:1;
+  box-shadow:inset 0 -1px 0 var(--line)}
+.pctn{font-variant-numeric:tabular-nums;font-weight:600}
+.pctn.good{color:var(--pct-good)} .pctn.mid{color:var(--pct-mid)} .pctn.bad{color:var(--pct-bad)}
+.pill.pgood{background:var(--pct-good-bg);color:var(--pct-good)}
+.pill.pmid{background:var(--pct-mid-bg);color:var(--pct-mid)}
+.pill.pbad{background:var(--pct-bad-bg);color:var(--pct-bad)}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.8rem}
+.muted{color:var(--muted)}
+.right{text-align:right}
+.chain-ok{color:var(--good);font-weight:600}
+.chain-bad{color:var(--bad);font-weight:700}
+details>summary{cursor:pointer}
+.login-wrap{max-width:380px;margin:8vh auto;padding:1rem}
+.login-wrap .card{padding:1.5rem}
+.login-wrap label{display:block;margin-bottom:.75rem;font-size:.85rem;color:var(--muted)}
+.login-wrap input{width:100%;margin-top:.2rem}
+.err{background:#fbe3e1;color:var(--bad);padding:.5rem .7rem;border-radius:6px;margin-bottom:.8rem;font-size:.85rem}
+.legend{font-size:.78rem;color:var(--muted);margin-top:.4rem}
+canvas{max-width:100%}
+.chart-wrap{position:relative;height:var(--chart-h);width:100%;min-width:0}
+/* `position:relative; z-index:0` is load-bearing: Leaflet stacks its own panes
+   at z-index 400-700, and without an isolating stacking context here those
+   panes compete at the root and paint the map straight over the insight modal.
+   Pinning the container to z-index 0 keeps Leaflet's numbers inside the map. */
+#map{height:clamp(220px,30vh,380px);position:relative;z-index:0;isolation:isolate}
+
+/* ===========================================================================
+   Insight cards: click a KPI or a chart, it lifts off the page, flies to the
+   centre of the screen, enlarges and turns over to show where the number came
+   from — with a link straight into the rows it was computed from.
+
+   Built with two stacked faces on one 3-D transformed element rather than two
+   separate elements, so the flip is a single GPU transform and stays smooth on
+   the office's older laptops.  All motion is suppressed under
+   prefers-reduced-motion: the card still opens, it just does not spin.
+   ========================================================================= */
+[data-insight]{cursor:zoom-in;position:relative;transition:transform .14s ease,box-shadow .14s ease}
+[data-insight]:hover{transform:translateY(-2px);box-shadow:0 2px 4px rgba(20,35,28,.07),0 10px 24px rgba(20,35,28,.10)}
+[data-insight]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* A quiet corner glyph: the only affordance saying "there is more behind this". */
+[data-insight]::after{content:"⤢";position:absolute;top:.35rem;right:.45rem;
+  font-size:.7rem;color:var(--muted);opacity:.35;line-height:1}
+[data-insight]:hover::after{opacity:.9;color:var(--accent)}
+[data-insight].is-source{visibility:hidden}
+
+.zoom-backdrop{position:fixed;inset:0;background:rgba(14,24,19,.5);z-index:900;
+  opacity:0;transition:opacity .25s ease;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.zoom-backdrop.on{opacity:1}
+
+.zoom-stage{position:fixed;z-index:901;perspective:1800px;
+  transition:top .42s cubic-bezier(.2,.75,.25,1),left .42s cubic-bezier(.2,.75,.25,1),
+             width .42s cubic-bezier(.2,.75,.25,1),height .42s cubic-bezier(.2,.75,.25,1)}
+.zoom-card{position:relative;width:100%;height:100%;transform-style:preserve-3d;
+  transition:transform .52s cubic-bezier(.2,.75,.25,1)}
+.zoom-card.flipped{transform:rotateY(180deg)}
+.zoom-face{position:absolute;inset:0;-webkit-backface-visibility:hidden;backface-visibility:hidden;
+  background:var(--card);border:1px solid var(--line);border-radius:14px;
+  box-shadow:0 24px 60px rgba(10,20,15,.28);overflow:auto;
+  padding:clamp(.8rem,1.6vw,1.6rem);display:flex;flex-direction:column;
+  /* switches at the half-way point of the .52s turn, so the face swap happens
+     while the card is edge-on and is never seen */
+  transition:visibility 0s linear .26s}
+.zoom-face.back{transform:rotateY(180deg)}
+/* backface-visibility alone is not enough.  A face here is itself a scroll
+   container, and a scrolling element that is facing away is still painted by
+   some browsers and, worse, still swallows the clicks aimed at the face in
+   front of it -- which is exactly what stopped "Turn back" from doing
+   anything.  Hiding the away-facing side outright is what makes the button
+   work in every browser rather than only in Chrome. */
+.zoom-card:not(.flipped) > .zoom-face.back,
+.zoom-card.flipped     > .zoom-face.front{visibility:hidden;pointer-events:none}
+.zoom-face .zoom-body{flex:1;min-height:0;display:flex;flex-direction:column}
+.zoom-face .chart-wrap{height:auto;flex:1;min-height:180px}
+/* A headline figure gets the whole face: the number at poster size, centred,
+   with its supporting line and progress bar scaled to match. */
+.zoom-face .zoom-body.kpi{justify-content:center;align-items:flex-start;gap:.15rem}
+.zoom-face .n{font-size:clamp(2.6rem,6.5vw,5.5rem);line-height:1}
+.zoom-face .l{font-size:clamp(.9rem,1.3vw,1.3rem);color:var(--muted)}
+.zoom-face .sub{font-size:clamp(.78rem,1vw,1.02rem);color:var(--muted)}
+.zoom-face .bar{height:16px;width:100%;margin-top:1rem}
+.zoom-face h2{font-size:clamp(.8rem,.95vw,1rem)}
+.zoom-face table{font-size:clamp(.75rem,.85vw,.92rem)}
+.zoom-face::after{content:none}
+
+.zoom-bar{display:flex;gap:.5rem;align-items:center;margin-top:.9rem;flex-wrap:wrap;flex:0 0 auto}
+.zoom-bar .grow{flex:1}
+.zoom-kicker{font-size:.78rem;color:var(--muted);margin:0 0 .25rem}
+.zoom-face h3{margin:0 0 .7rem;font-size:clamp(1rem,1.3vw,1.35rem);line-height:1.25}
+.zoom-what{font-size:clamp(.85rem,1vw,1.02rem);line-height:1.55;margin:0 0 1rem}
+.zoom-src{background:#f3f5f3;border:1px solid var(--line);
+  border-radius:8px;padding:.6rem .75rem;margin:0 0 1rem}
+.zoom-src dt{font-size:.74rem;color:var(--muted);margin-bottom:.15rem}
+.zoom-src dd{margin:0 0 .6rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:.78rem;line-height:1.5;word-break:break-word}
+.zoom-src dd:last-child{margin-bottom:0}
+a.btn{display:inline-block;text-decoration:none;font-size:.85rem;padding:.45rem .9rem;border-radius:6px;
+  border:1px solid var(--accent);background:var(--accent);color:#fff;font-weight:600}
+a.btn.sec{background:#fff;color:var(--accent)}
+a.btn:hover{filter:brightness(1.08)}
+
+@media (prefers-reduced-motion:reduce){
+  .zoom-stage,.zoom-card,.zoom-backdrop,[data-insight],.zoom-face{transition:none}
+  .zoom-card.flipped{transform:none}
+  .zoom-face.back{transform:none}
+  /* No rotation, so the two faces are swapped outright instead. */
+  .zoom-card:not(.flipped) > .zoom-face.back{display:none}
+  .zoom-card.flipped     > .zoom-face.front{display:none}
+}
+
+/* ===========================================================================
+   The CM screen: ONE page, no scrolling, sized to whatever screen it is
+   projected on.
+
+   The whole document becomes a flex column — banner, headline strip, then a
+   band that takes every remaining pixel and divides it three ways.  Panes that
+   could outgrow their share (a district with twenty shelters) scroll inside
+   themselves, so the page itself never does.
+   ========================================================================= */
+body.cm-page{height:100vh;height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+body.cm-page main{flex:1;min-height:0;max-width:none;display:flex;flex-direction:column;
+  gap:clamp(1rem,2.4vh,2.4rem);padding:clamp(.45rem,.85vw,1rem)}
+/* Bigger numbers than the admin page: this one is read from across a room. */
+body.cm-page{--kpi-n:clamp(1.4rem,2.5vw,3.2rem);--kpi-l:clamp(.65rem,.8vw,.95rem);
+             --kpi-sub:clamp(.58rem,.68vw,.82rem)}
+body.cm-page .kpis{flex:0 0 auto;gap:var(--gap)}
+/* The tagging bar sits directly under its own figure and needs to read as
+   belonging to it, not as a rule under the card. */
+body.cm-page .kpi .bar{margin-top:.55rem}
+body.cm-page .kpi{justify-content:center}
+
+.cm-hero{flex:0 0 auto;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+  background:var(--accent);color:#fff;border-radius:12px;padding:clamp(.5rem,1vw,1rem) clamp(.7rem,1.2vw,1.3rem)}
+.cm-hero h1{margin:0;color:#fff;font-size:clamp(1rem,1.6vw,1.7rem);line-height:1.15}
+.cm-hero p{margin:.15rem 0 0;opacity:.82;font-size:clamp(.68rem,.8vw,.9rem)}
+.cm-stamp{margin-left:auto;font-size:clamp(.65rem,.75vw,.85rem);opacity:.9;display:flex;align-items:center;gap:.45rem;white-space:nowrap}
+.cm-stamp .dot{width:8px;height:8px;border-radius:50%;background:#8fe0b4;box-shadow:0 0 0 0 rgba(143,224,180,.7);
+  animation:cm-pulse 2.4s infinite}
+@keyframes cm-pulse{
+  0%{box-shadow:0 0 0 0 rgba(143,224,180,.6)}
+  70%{box-shadow:0 0 0 9px rgba(143,224,180,0)}
+  100%{box-shadow:0 0 0 0 rgba(143,224,180,0)}
+}
+
+/* The band that eats the leftover height.  Two panes across the top, then the
+   hour chart across the full width underneath: the chart is the one thing on
+   this screen read from the back of a room, so it gets the width, and the two
+   tables get the height they need without either being squeezed into a third
+   of the screen. */
+.cm-fill{flex:1;min-height:0;display:grid;gap:var(--gap);
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-rows:minmax(0,1.05fr) minmax(0,1fr)}
+.cm-fill > .card.wide{grid-column:1 / -1}
+.cm-fill > .card{min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.cm-fill .scroll{flex:1;min-height:0;overflow:auto}
+.cm-fill .chart-wrap{height:auto;flex:1;min-height:0}
+/* This screen is read from the back of a room, so the tables stretch into the
+   height the band gives them rather than sitting in a thin block at the top
+   with dead space beneath.  `height:100%` on the table makes the browser
+   distribute the surplus across the rows; the padding cap stops four rows in a
+   tall pane from turning into four enormous ones. */
+.cm-fill table{font-size:clamp(.72rem,.85vw,1rem);height:100%}
+.cm-fill td,.cm-fill th{padding-block:min(1.6vh,1.1rem)}
+.cm-fill tbody tr{vertical-align:middle}
+.cm-fill .bar{height:12px}
+.cm-fill thead th{position:sticky;top:0;background:var(--card);z-index:1}
+
+@media (prefers-reduced-motion:reduce){ .cm-stamp .dot{animation:none} }
+
+/* Below a laptop the single-screen promise cannot be kept honestly; let it
+   scroll rather than crush every figure into illegibility. */
+@media (max-width:1000px), (max-height:560px){
+  body.cm-page{height:auto;overflow:auto}
+  body.cm-page main{display:block}
+  .cm-fill{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:none;
+           gap:var(--gap);margin-top:var(--gap)}
+  .cm-fill > .card{height:auto}
+  .cm-fill .chart-wrap{height:var(--chart-h)}
+}

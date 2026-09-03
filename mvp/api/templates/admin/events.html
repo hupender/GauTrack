@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Events: GauTrack{% endblock %}
+{% block content %}
+<h1>Event feed</h1>
+{% if user.role.value in ["super_admin","ulb_admin","auditor"] %}
+<p class="muted" style="margin-top:-6px"><a href="/api/export/events.csv">Download CSV</a> <span style="opacity:.7">(add <code>?from=YYYY-MM-DD&amp;to=YYYY-MM-DD</code> to slice by date)</span></p>
+{% endif %}
+<form class="filters" method="get" action="/admin/events">
+  <label class="f">Type
+    <select name="type"><option value="">All</option>
+      {% for s in ['registration','tagging','tag_lost','tag_replaced','sighting_road','impound','release','fine_issued','fine_paid','gaushala_intake','transfer_owner','death','correction','owner_merge','note'] %}
+      <option value="{{ s }}" {{ 'selected' if type==s }}>{{ s }}</option>{% endfor %}
+    </select>
+  </label>
+  <label class="f">ULB
+    <select name="ulb"><option value="">All in your scope</option>
+      {% for u in ulbs %}<option value="{{ u.id }}" {{ 'selected' if ulb==u.id }}>{{ u.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <button type="submit">Filter</button>
+</form>
+<div class="card">
+<table>
+  <thead><tr><th>#</th><th>Occurred</th><th>Received</th><th>Type</th><th>Officer</th><th>Animal</th><th>Details</th></tr></thead>
+  <tbody>
+  {% for e in items %}
+    <tr>
+      <td class="mono muted">{{ e.seq }}</td>
+      <td class="muted">{{ e.occurred_at.strftime('%d %b %H:%M') }}</td>
+      <td class="muted">{{ e.received_at.strftime('%d %b %H:%M') }}</td>
+      <td><span class="pill {{ 'bad' if e.type.value in ['sighting_road','impound','fine_issued','tag_lost'] else '' }}">{{ e.type.value }}</span></td>
+      <td>{% if e.user_id %}{{ users.get(e.user_id, '-') }}{% else %}<span class="pill warn">public</span>{% endif %}</td>
+      <td class="mono">{% if e.animal_id %}<a href="/admin/animals/{{ e.animal_id }}">open</a>{% else %}-{% endif %}</td>
+      <td class="mono muted">{{ e.payload|tojson }}</td>
+    </tr>
+  {% else %}<tr><td colspan="7" class="muted">No events.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="legend">"Occurred" is when the officer recorded it on the phone; "Received" is when it reached the server. A gap means the device was offline.</p>
+{% endblock %}

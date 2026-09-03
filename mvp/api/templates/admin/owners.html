@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Owners: GauTrack{% endblock %}
+{% block content %}
+<h1>Owners <span class="muted" style="font-weight:400">({{ items|length }} shown)</span></h1>
+{% if user.role.value in ["super_admin","ulb_admin","auditor"] %}
+<p class="muted" style="margin-top:-6px"><a href="/api/export/owners.csv">Download CSV</a> <span style="opacity:.7">(add <code>?from=YYYY-MM-DD&amp;to=YYYY-MM-DD</code> to slice by date)</span></p>
+{% endif %}
+<form class="filters" method="get" action="/admin/owners">
+  <label class="f">Search name / village<input name="q" value="{{ q }}" placeholder="e.g. Kosli"></label>
+  <label class="f">ULB
+    <select name="ulb">
+      <option value="">All in your scope</option>
+      {% for u in ulbs %}<option value="{{ u.id }}" {{ 'selected' if ulb==u.id }}>{{ u.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <button type="submit">Search</button>
+</form>
+<div class="card">
+<table>
+  <thead><tr><th>Name</th><th>Father / husband</th><th>Phone</th><th>Ward / village</th><th>Keeper type</th>
+             <th class="right" title="Cattle the keeper stated they own, against animals actually registered">Declared / on register</th>
+             <th class="right">Area (sq yd)</th><th>ULB</th><th>Registered</th></tr></thead>
+  <tbody>
+  {% for o in items %}
+    <tr>
+      <td><a href="/admin/owners/{{ o.id }}">{{ o.name }}</a></td>
+      <td class="muted">{{ o.relation_name or '-' }}</td>
+      <td class="mono">{{ o.phone or '-' }}</td>
+      <td>{{ o.ward_or_village or '-' }}</td>
+      <td><span class="pill mute">{{ o.keeper_type }}</span></td>
+      {# Declared against registered.  A keeper who says 6 and has 2 on the
+         register has four animals unaccounted for — that gap is the reason
+         the field app asks the question before anyone starts counting. #}
+      <td class="right">{% if o.declared is none %}<span class="muted">-</span> / {{ o.animal_count }}
+          {% else %}<span class="pill {{ 'pbad' if o.declared > o.animal_count else 'pgood' }}">{{ o.declared }}</span>
+                    / {{ o.animal_count }}{% endif %}</td>
+      <td class="right">{{ '{:,.0f}'.format(o.area) if o.area is not none else '-' }}</td>
+      <td>{{ o.ulb }}</td>
+      <td class="muted">{{ o.created_at.strftime('%d %b %Y') }}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="9" class="muted">No owners match.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="legend">Phone numbers outside your ULB are masked. Records outside your ULB are not listed at all. A red declared-count means the keeper stated more animals than are on the register.</p>
+{% endblock %}

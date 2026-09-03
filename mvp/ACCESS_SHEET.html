@@ -1,0 +1,201 @@
+<title>GauTrack Access Sheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* One page, meant to be printed and handed over. It shares its palette and
+   typefaces with the walkthrough deck so the two read as one set of documents:
+   GauTrack's own deep green, and the browns the charts use. Everything is
+   sized so the whole sheet lands on one A4 with a 12 mm margin. */
+:root{
+  --paper:#faf8f4; --panel:#fff; --ink:#221c15; --ink-2:#4a4239; --muted:#736a5e;
+  --rule:#e2dbd0; --rule-2:#c9bfb0;
+  --green:#12603f; --green-soft:#e7f0ea;
+  --ochre:#b3762a; --hide:#8a5a2b;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#17140f; --panel:#211c16; --ink:#f2ece2; --ink-2:#cfc6b8; --muted:#a2988a;
+    --rule:#332c23; --rule-2:#4a4034;
+    --green:#4fbf8b; --green-soft:#16281f;
+    --ochre:#e0a961; --hide:#c9945c;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#17140f; --panel:#211c16; --ink:#f2ece2; --ink-2:#cfc6b8; --muted:#a2988a;
+  --rule:#332c23; --rule-2:#4a4034;
+  --green:#4fbf8b; --green-soft:#16281f;
+  --ochre:#e0a961; --hide:#c9945c;
+}
+@page{ size:A4 portrait; margin:11mm; }
+*{ box-sizing:border-box; }
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font:400 11.6px/1.5 "Source Serif 4", Georgia, serif;
+  font-variant-numeric:tabular-nums; -webkit-font-smoothing:antialiased;
+}
+.sheet{ max-width:198mm; margin:0 auto; padding:12mm 11mm; background:var(--panel); }
+h1,h2,.eyebrow,th,.who,figcaption b{ font-family:Archivo,"Helvetica Neue",Arial,sans-serif; }
+
+.mast{ border-bottom:2.5px solid var(--green); padding-bottom:.55rem; margin-bottom:.9rem; }
+.eyebrow{ font-size:8.5px; font-weight:600; letter-spacing:.15em; text-transform:uppercase;
+          color:var(--green); margin:0 0 .25rem; }
+h1{ font-size:21px; font-weight:700; letter-spacing:-.015em; line-height:1.05; margin:0; }
+.sub{ margin:.3rem 0 0; font-size:11.4px; color:var(--ink-2); max-width:64ch; }
+
+h2{ font-size:11px; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--green); margin:1.15rem 0 .45rem; }
+
+/* The diagram carries the one idea a sentence keeps failing to land: everybody
+   reaches the same single machine, and nobody installs anything. */
+figure{ margin:.35rem 0 0; }
+svg{ display:block; width:100%; height:auto; }
+
+table{ width:100%; border-collapse:collapse; font-size:10.4px; }
+th,td{ text-align:left; vertical-align:top; padding:.34rem .6rem .34rem 0; border-bottom:1px solid var(--rule); }
+th{ font-size:8.6px; font-weight:600; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--muted); border-bottom:1.4px solid var(--ink); padding-bottom:.3rem; }
+td:last-child,th:last-child{ padding-right:0; }
+.who{ font-weight:600; font-size:10.4px; color:var(--ink); width:19%; }
+.who small{ display:block; font-family:"Source Serif 4",serif; font-weight:400; color:var(--muted); font-size:9.4px; }
+.addr{ font-family:"IBM Plex Mono",monospace; font-size:9.6px; color:var(--green); white-space:nowrap; width:11%; }
+
+.cols{ display:grid; grid-template-columns:1fr 1fr; gap:0 2.2rem; }
+ol,ul{ margin:.25rem 0 0; padding-left:1.1rem; }
+li{ margin:.22rem 0; color:var(--ink-2); }
+li b{ color:var(--ink); font-weight:600; }
+ol li::marker{ color:var(--ochre); font-weight:600; }
+
+.foot{ margin-top:1.1rem; padding-top:.45rem; border-top:1px solid var(--rule);
+       font-size:8.8px; color:var(--muted); display:flex; justify-content:space-between; gap:1rem; }
+
+@media print{
+  body{ background:#fff; }
+  .sheet{ padding:0; max-width:none; box-shadow:none; }
+}
+@media (max-width:700px){ .cols{ grid-template-columns:1fr; } .sheet{ padding:6mm; } body{ font-size:13px; } }
+</style>
+
+<div class="sheet">
+
+  <div class="mast">
+    <p class="eyebrow">Rewari district &middot; Haryana</p>
+    <h1>GauTrack: who needs what</h1>
+    <p class="sub">The live system, not the laptop demonstration. One computer holds the record;
+      four kinds of user reach it, each at their own address. Nothing is installed on anybody's
+      phone or computer.</p>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 760 200" role="img" aria-label="One server at the centre. Four kinds of user reach it over the internet: field officers, the office, the Chief Minister's office, and the general public.">
+      <g fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="252" y="4" width="256" height="50" rx="2"/>
+      </g>
+      <text x="380" y="23" text-anchor="middle" font-size="12.5" font-weight="700" font-family="Archivo,Arial,sans-serif" fill="currentColor">THE SERVER</text>
+      <text x="380" y="37" text-anchor="middle" font-size="10" font-family="'Source Serif 4',Georgia,serif" fill="currentColor">one computer, always on, holds the record</text>
+      <text x="380" y="49" text-anchor="middle" font-size="9" font-family="'IBM Plex Mono',monospace" fill="currentColor" opacity=".7">https://&lt;your web address&gt;</text>
+
+      <g stroke="currentColor" stroke-width="1.1" fill="none" opacity=".55">
+        <path d="M380 54 V 78"/><path d="M85 78 H 675"/>
+        <path d="M85 78 V 104"/><path d="M283 78 V 104"/><path d="M478 78 V 104"/><path d="M675 78 V 104"/>
+      </g>
+      <text x="380" y="72" text-anchor="middle" font-size="8.5" font-family="'Source Serif 4',Georgia,serif" fill="currentColor" opacity=".65">reached over the internet, always securely</text>
+
+      <g fill="none" stroke="currentColor" stroke-width="1.3" opacity=".85">
+        <rect x="8" y="104" width="154" height="66" rx="2"/>
+        <rect x="206" y="104" width="154" height="66" rx="2"/>
+        <rect x="401" y="104" width="154" height="66" rx="2"/>
+        <rect x="598" y="104" width="154" height="66" rx="2"/>
+      </g>
+      <g text-anchor="middle" fill="currentColor">
+        <text x="85"  y="122" font-size="11" font-weight="600" font-family="Archivo,Arial,sans-serif">Field officers</text>
+        <text x="85"  y="136" font-size="9.5" font-family="'Source Serif 4',Georgia,serif">Android phone</text>
+        <text x="85"  y="150" font-size="9.5" font-family="'IBM Plex Mono',monospace">/app</text>
+        <text x="85"  y="163" font-size="8.5" font-family="'Source Serif 4',Georgia,serif" opacity=".7">one login each</text>
+
+        <text x="283" y="122" font-size="11" font-weight="600" font-family="Archivo,Arial,sans-serif">The office</text>
+        <text x="283" y="136" font-size="9.5" font-family="'Source Serif 4',Georgia,serif">office computer</text>
+        <text x="283" y="150" font-size="9.5" font-family="'IBM Plex Mono',monospace">/admin</text>
+        <text x="283" y="163" font-size="8.5" font-family="'Source Serif 4',Georgia,serif" opacity=".7">one login each, plus a code</text>
+
+        <text x="478" y="122" font-size="11" font-weight="600" font-family="Archivo,Arial,sans-serif">CM&rsquo;s office</text>
+        <text x="478" y="136" font-size="9.5" font-family="'Source Serif 4',Georgia,serif">any computer, anywhere</text>
+        <text x="478" y="150" font-size="9.5" font-family="'IBM Plex Mono',monospace">/cm</text>
+        <text x="478" y="163" font-size="8.5" font-family="'Source Serif 4',Georgia,serif" opacity=".7">one read-only login</text>
+
+        <text x="675" y="122" font-size="11" font-weight="600" font-family="Archivo,Arial,sans-serif">General public</text>
+        <text x="675" y="136" font-size="9.5" font-family="'Source Serif 4',Georgia,serif">their own phone</text>
+        <text x="675" y="150" font-size="9.5" font-family="'IBM Plex Mono',monospace">/report</text>
+        <text x="675" y="163" font-size="8.5" font-family="'Source Serif 4',Georgia,serif" opacity=".7">no login at all</text>
+      </g>
+      <text x="380" y="190" text-anchor="middle" font-size="9.5" font-style="italic" font-family="'Source Serif 4',Georgia,serif" fill="currentColor" opacity=".7">Every screen is a web page on the one computer. There is no app to install.</text>
+    </svg>
+  </figure>
+
+  <h2>What each person needs</h2>
+  <table>
+    <thead><tr><th>Who</th><th>Opens</th><th>On what</th><th>What they must be given</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="who">Field officers<small>tagging, sightings, impounding</small></td>
+        <td class="addr">/app</td>
+        <td>Any Android phone with mobile data. Their own phone is fine.</td>
+        <td>One account each, never shared. The phone must be allowed to use its camera and location when the page asks.</td>
+      </tr>
+      <tr>
+        <td class="who">The office<small>DMC and staff</small></td>
+        <td class="addr">/admin</td>
+        <td>The office computer, any modern browser.</td>
+        <td>One account each, with a second code at sign-in. Shared logins make the record of who did what worthless.</td>
+      </tr>
+      <tr>
+        <td class="who">CM and his office</td>
+        <td class="addr">/cm</td>
+        <td>Any computer, from anywhere.</td>
+        <td>One read-only account. Totals only: no names, no phone numbers, no photographs.</td>
+      </tr>
+      <tr>
+        <td class="who">General public</td>
+        <td class="addr">/report</td>
+        <td>Their own phone.</td>
+        <td>Nothing. No account, no app. The link and a printed code on a poster are the whole rollout.</td>
+      </tr>
+      <tr>
+        <td class="who">The computer itself</td>
+        <td class="addr">&mdash;</td>
+        <td>One machine that stays on: rented in an Indian data centre, or an office machine with a fixed public address.</td>
+        <td>A web address, nightly backups, and one named officer formally responsible for it.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="cols">
+    <div>
+      <h2>What the office must obtain</h2>
+      <ol>
+        <li><b>A web address.</b> A gov.in name from the IT department, or a bought .in name for about &#8377;1,000 a year while that is processed.</li>
+        <li><b>A computer that never sleeps.</b> Rented in an Indian data centre, or one in the office with a fixed public address and a battery backup.</li>
+        <li><b>An account for it</b> in the department&rsquo;s name, on the office email, on an office payment method.</li>
+        <li><b>A list of staff</b> needing logins, each marked field officer, office, or read-only.</li>
+        <li><b>A named officer</b> formally answerable for the record once it holds real names.</li>
+        <li><b>A security inspection</b> by a government-approved auditor, before any real keeper&rsquo;s details are entered.</li>
+      </ol>
+    </div>
+    <div>
+      <h2>Worth knowing before you are asked</h2>
+      <ul>
+        <li><b>Nothing gets installed.</b> No app store, no software on any office computer. Four web addresses is the whole system.</li>
+        <li><b>A secure address is not optional.</b> A phone will not give a web page its camera or its location unless the connection is secure, so without it the field app cannot photograph or locate anything.</li>
+        <li><b>The public form has no login on purpose.</b> Public reports are held separately and never counted in the headline figures until an officer verifies them.</li>
+        <li><b>Old phones are fine.</b> The field app keeps working with no signal and sends what it recorded once the phone is back in coverage.</li>
+        <li><b>One person, one login.</b> Every entry is signed by the officer who made it. That is what makes the numbers defensible if they are challenged.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span>GauTrack &middot; Rewari district stray cattle registry &middot; prepared for the office of the District Municipal Commissioner</span>
+    <span>Detail: deployment runbook, sections 15 to 19</span>
+  </div>
+
+</div>

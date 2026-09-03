@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Rewari district: stray cattle status{% endblock %}
+{% block body_class %}cm-page{% endblock %}
+
+{# The projection screen.  Everything fits ONE 16:9 screen with no scrolling:
+   a compact banner, six headline figures on one line, and a bottom band that
+   takes whatever height is left and splits it three ways.  Nothing on this
+   page is personal — no names, no phone numbers, no photographs — so it is
+   safe to put on a wall.
+
+   Links into the registry are rendered only for roles that may read records.
+   For the `viewer` role (the CM / press login) the aggregate endpoint is
+   offered instead, because that is genuinely all it is allowed to open. #}
+{% set drill = scope and scope.can_read_entities %}
+
+{% block content %}
+<div class="cm-hero">
+  <div>
+    <h1>Rewari district: stray &amp; road cattle</h1>
+    <p>Live from the field. Aggregate only: no owner names, phone numbers or photographs on this screen.</p>
+  </div>
+  <div class="cm-stamp">
+    <span class="dot"></span>Live · generated {{ summary.generated_at[11:19] }} UTC
+  </div>
+</div>
+
+{% set tcls = pct_class(summary.tagged_pct) %}
+<div class="grid kpis" style="--n:6">
+  <div class="card kpi" data-insight
+       data-ins-title="Animals on the register"
+       data-ins-what="Every head of cattle and buffalo with a record: species, sex, age, owner where there is one, photograph and location. Before this system there was no number here at all — the district was arguing about a figure nobody could produce."
+       data-ins-source="animals — all rows"
+       data-ins-scope="Whole district, all urban local bodies."
+       data-ins-api="/api/stats/summary"
+       {% if drill %}data-ins-link="/admin/animals" data-ins-link-label="Open the animal register"{% endif %}>
+    <div class="n">{{ "{:,}".format(summary.animals) }}</div><div class="l">Animals on the register</div></div>
+
+  <div class="card kpi" data-insight
+       data-ins-title="Tagging coverage"
+       data-ins-what="The share of registered animals carrying a tag. This is the figure the whole plan turns on: a tagged animal found on a road can be traced to its owner and a penalty follows; an untagged one cannot, and the cost falls back on the public."
+       data-ins-source="count(animals WHERE tag_id IS NOT NULL) ÷ count(animals)"
+       data-ins-scope="Green at 75% and above, amber from 40%, red below 40%."
+       data-ins-api="/api/stats/summary"
+       {% if drill %}data-ins-link="/admin/animals" data-ins-link-label="Open the animal register"{% endif %}>
+    <div class="n pctn {{ tcls }}">{{ summary.tagged_pct }}%</div><div class="l">Tagged</div>
+    <div class="bar" style="margin-top:.4rem"><i class="{{ tcls }}" style="width:{{ summary.tagged_pct }}%"></i></div></div>
+
+  <div class="card kpi" data-insight
+       data-ins-title="Cattle keepers registered"
+       data-ins-what="Households, dairies and tabelas surveyed and entered, each one geo-located at its own door. This is the accountability list: it is what turns 'a cow on the road' into 'this person's cow on the road'."
+       data-ins-source="owners — WHERE merged_into IS NULL"
+       data-ins-scope="Duplicates merged into another record are not double-counted."
+       data-ins-api="/api/stats/summary"
+       {% if drill %}data-ins-link="/admin/owners" data-ins-link-label="Open the owner register"{% endif %}>
+    <div class="n">{{ "{:,}".format(summary.owners) }}</div><div class="l">Cattle keepers registered</div></div>
+
+  <div class="card kpi" data-insight
+       data-ins-title="Road sightings this week"
+       data-ins-what="Cattle found on a public road by a field officer in the last seven days. Each is photographed, geo-tagged and signed by the officer who recorded it, so the number is defensible in a hearing."
+       data-ins-source="events — WHERE type = 'sighting_road' AND occurred_at &gt; now() - 7 days"
+       data-ins-scope="Officer-recorded only."
+       data-ins-caveat="Unverified public reports are excluded on purpose, so that an open reporting channel cannot inflate or deflate the headline figure."
+       data-ins-api="/api/stats/summary"
+       {% if drill %}data-ins-link="/admin/events?type=sighting_road" data-ins-link-label="Open the sighting events"{% endif %}>
+    <div class="n">{{ summary.sightings_7d }}</div><div class="l">Road sightings this week</div></div>
+
+  <div class="card kpi" data-insight
+       data-ins-title="Removed from the road"
+       data-ins-what="Animals currently held rather than loose: impounded awaiting release, or booked into a gaushala or nandi-shala. Shelter beds are the hard limit on this number — when they are full, impounding stops being possible."
+       data-ins-source="animals — WHERE status IN ('impounded', 'in_gaushala')"
+       data-ins-scope="A live count of current status, not a running total since the pilot began."
+       data-ins-api="/api/stats/shelters"
+       {% if drill %}data-ins-link="/admin/animals?status=impounded" data-ins-link-label="Open the impounded animals"{% endif %}>
+    <div class="n">{{ summary.impounded_now + summary.in_gaushala }}</div><div class="l">Removed from the road</div>
+    <div class="sub">{{ summary.impounded_now }} impounded · {{ summary.in_gaushala }} in gaushala</div></div>
+
+  <div class="card kpi" data-insight
+       data-ins-title="Fines collected"
+       data-ins-what="Money actually received, against the total value of notices raised. The gap between the two is the enforcement gap, and it is shown deliberately: a plan that only reports what it issued is not reporting anything."
+       data-ins-source="fines — sum(amount) FILTER (WHERE status = 'paid'), against sum(amount)"
+       data-ins-scope="Every fine carries the legal instrument its amount rests on, recorded at the moment it was issued."
+       data-ins-api="/api/stats/summary"
+       {% if drill %}data-ins-link="/admin/fines" data-ins-link-label="Open the fines register"{% endif %}>
+    <div class="n">₹{{ "{:,.0f}".format(summary.fines_collected) }}</div><div class="l">Fines collected</div>
+    <div class="sub">of ₹{{ "{:,.0f}".format(summary.fines_amount) }} issued</div></div>
+</div>
+
+{# Bottom band: the two registers side by side on the top row, the hour chart
+   across the full width beneath.  The chart is the single thing on this screen
+   that is read from the back of a room, so it gets the width; the two tables
+   get height instead of being squeezed into a third of the screen each. #}
+<div class="grid cm-fill">
+  <div class="card" data-insight
+       data-ins-title="Shelter capacity"
+       data-ins-what="How full each gaushala, nandi-shala and cattle pound is. Ownerless animals — male calves, old cows, bulls — can never be fined home to anyone, so they end up here. When these bars are red, the removal side of the plan has stopped."
+       data-ins-source="shelters — current_count against capacity"
+       data-ins-scope="Red at 90% and above: the direction is reversed here, because a full shelter is bad news, not good."
+       data-ins-api="/api/stats/shelters"
+       {% if drill %}data-ins-link="/admin/shelters" data-ins-link-label="Open the shelter register"{% endif %}>
+    <h2>Shelter capacity</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Shelter</th><th class="right">In</th><th class="right">Beds</th><th style="width:38%">Load</th></tr></thead>
+        <tbody>
+        {% for s in shelters %}
+          {% set cls = pct_class(s.pct, 'high_bad') %}
+          <tr><td>{{ s.name }}</td><td class="right">{{ s.current_count }}</td><td class="right">{{ s.capacity }}</td>
+              <td><div class="bar"><i class="{{ cls }}" style="width:{{ [s.pct,100]|min }}%"></i></div>
+                  <span class="legend pctn {{ cls }}">{{ s.pct }}%</span></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {# The pilot runs at municipal-committee level, so this is a list of municipal
+     committees, not of every kind of urban local body.  The wording follows the
+     data rather than the other way round. #}
+  <div class="card" data-insight
+       data-ins-title="Progress by municipal committee"
+       data-ins-what="How far each municipal committee has got: animals on its register, how many of them are tagged, and the coverage that gives. The red rows are where the next tagging teams go."
+       data-ins-source="animals — GROUP BY ulb_id, (tag_id IS NOT NULL)"
+       data-ins-scope="Municipal-committee level only for the pilot. Green at 75% and above, amber from 40%, red below 40%."
+       data-ins-api="/api/stats/by_ulb"
+       {% if drill %}data-ins-link="/admin/animals" data-ins-link-label="Open the animal register"{% endif %}>
+    <h2>Progress by municipal committee</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Municipal committee</th><th class="right">Animals</th><th class="right">Tagged</th><th style="width:38%">Coverage</th></tr></thead>
+        <tbody>
+        {% for r in by_ulb %}
+          {% set pct = (100 * r.tagged / r.animals)|round(1) if r.animals else 0 %}
+          {% set cls = pct_class(pct) %}
+          <tr><td>{{ r.name }}</td><td class="right">{{ r.animals }}</td><td class="right">{{ r.tagged }}</td>
+              <td><div class="bar"><i class="{{ cls }}" style="width:{{ pct }}%"></i></div>
+                  <span class="legend pctn {{ cls }}">{{ pct }}%</span></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card wide" data-insight
+       data-ins-title="When cattle reach the road"
+       data-ins-what="Road sightings bucketed by the hour they happened, in local time. The two peaks are the grazing routine — animals let out in the morning, brought back to be milked in the evening. Patrols placed on those two windows catch most of the problem for a fraction of the effort."
+       data-ins-source="events — WHERE type = 'sighting_road' GROUP BY hour(occurred_at AT TIME ZONE 'Asia/Kolkata')"
+       data-ins-scope="All officer-recorded history, so the daily shape is stable."
+       data-ins-api="/api/stats/hourly"
+       {% if drill %}data-ins-link="/admin/events?type=sighting_road" data-ins-link-label="Open the sighting events"{% endif %}>
+    <h2>When cattle reach the road</h2>
+    <div class="chart-wrap"><canvas id="c-hourly"></canvas></div>
+    <p class="legend">Sightings by hour, local time.</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/vendor/chart-4.4.7.umd.min.js"></script>
+<script nonce="{{ csp_nonce }}">
+  window.GT_HOURLY = {{ hourly|tojson }};
+</script>
+<script src="/static/cm.js?v={{ asset_v }}"></script>
+{% endblock %}

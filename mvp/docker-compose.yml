@@ -1,0 +1,92 @@
+# GauTrack — production compose stack (db, api, caddy).
+#   docker compose up -d --build
+#
+# Security notes:
+#  * `db` publishes NO port to the host — only `api` can reach Postgres.
+#  * `api` publishes no port either — only Caddy (the TLS terminator) can reach it.
+#  * `api` runs as a non-root user (see api/Dockerfile).
+#  * photos live on a named volume mounted at /data/photos, served only through
+#    the authenticated /api/photos/{id} route.
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gautrack}
+      POSTGRES_USER: ${POSTGRES_OWNER_USER:-gautrack_owner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      APP_DB_USER: ${POSTGRES_APP_USER:-gautrack_app}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?APP_DB_PASSWORD must be set}
+      # scram-sha-256 for everything, including local connections
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      # runs once, on an empty data directory: creates the low-privilege app role
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    # deliberately NO `ports:` — the database is not reachable from the host.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [backend]
+
+  api:
+    build:
+      context: ./api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set}
+      POSTGRES_DB: ${POSTGRES_DB:-gautrack}
+      POSTGRES_OWNER_USER: ${POSTGRES_OWNER_USER:-gautrack_owner}
+      POSTGRES_APP_USER: ${POSTGRES_APP_USER:-gautrack_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      PHOTO_DIR: /data/photos
+      MAP_TILES_URL: ${MAP_TILES_URL:-https://tile.openstreetmap.org/{z}/{x}/{y}.png}
+      MAP_TILES_ATTRIBUTION: ${MAP_TILES_ATTRIBUTION:-&copy; OpenStreetMap contributors}
+      SEED_DEMO: ${SEED_DEMO:-0}
+      COOKIE_SECURE: ${COOKIE_SECURE:-1}
+      TRUSTED_PROXY_COUNT: ${TRUSTED_PROXY_COUNT:-1}
+      SESSION_IDLE_MINUTES_FIELD: ${SESSION_IDLE_MINUTES_FIELD:-720}
+      SESSION_IDLE_MINUTES_ADMIN: ${SESSION_IDLE_MINUTES_ADMIN:-120}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - photos:/data/photos
+    # deliberately NO `ports:` — reachable only through Caddy.
+    networks: [backend, frontend]
+    # Migrations + optional seed run at boot, then uvicorn.
+    command: ["/app/entrypoint.sh"]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [api]
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?SITE_ADDRESS must be set}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [frontend]
+
+volumes:
+  db_data:
+  photos:
+  caddy_data:
+  caddy_config:
+
+networks:
+  # `backend` has no route to caddy; `frontend` has no route to db.
+  backend:
+    internal: true
+  frontend:

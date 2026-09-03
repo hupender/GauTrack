@@ -1,0 +1,36 @@
+{
+  // Recipe for a GitHub Codespace: a Linux machine GitHub starts from this
+  // repository, so the whole stack runs somewhere every phone and every office
+  // computer can reach, without buying a server first.  See section 15 of
+  // mvp/README.md.
+  //
+  // Ubuntu 24.04 rather than a Python image, because the stack needs Docker for
+  // PostgreSQL as well as Python for the web server.
+  "name": "GauTrack",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    // Lets `docker compose` run inside the Codespace, which is how the
+    // development database starts (mvp/scripts/dev_db.sh).
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    // The version SPEC.md pins.
+    "ghcr.io/devcontainers/features/python:1": { "version": "3.12" }
+  },
+
+  // 8000 is the web server.  `visibility: public` is what makes the forwarded
+  // address openable by someone who is not signed in to GitHub -- a field
+  // officer's phone, the DMC's office computer, a member of the public.
+  // Without it GitHub answers every request with a sign-in page.
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": { "label": "GauTrack", "onAutoForward": "notify", "visibility": "public" }
+  },
+
+  // Builds the Python environment once, when the Codespace is created, so the
+  // first `make dev` is not also a five-minute install.
+  "postCreateCommand": "make -C mvp venv",
+
+  // Codespaces puts a proxy in front of the web server, so without this every
+  // visitor would appear to arrive from the same address and the per-address
+  // rate limits would treat a room full of demo users as one attacker.
+  "remoteEnv": { "TRUSTED_PROXY_COUNT": "1" }
+}

@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Overview: GauTrack{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/static/vendor/leaflet-1.9.4.css">
+<link rel="stylesheet" href="/static/vendor/MarkerCluster-1.5.3.css">
+<link rel="stylesheet" href="/static/vendor/MarkerCluster.Default-1.5.3.css">
+{% endblock %}
+
+{% block content %}
+{# The page is built in horizontal bands, each one line deep: headline figures,
+   then charts, then the map, then the detail tables.  The bands below the fold
+   are what the scroll is for; nothing above it wraps. #}
+<div class="page-head">
+  <h1>District overview</h1>
+  <form class="filters" method="get" action="/admin" id="ulb-filter">
+    <label class="f">ULB
+      <select name="ulb">
+        <option value="">All ULBs</option>
+        {% for u in ulbs %}<option value="{{ u.id }}" {{ 'selected' if ulb==u.id }}>{{ u.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit">Apply</button>
+  </form>
+</div>
+
+<div hx-get="/admin/partials/kpis{{ qs(ulb=ulb) }}"
+     hx-trigger="every 60s" hx-swap="innerHTML">
+  {% include "admin/_kpis.html" %}
+</div>
+
+{# Four charts, one line.  Each owns a distinct hue in its own data, so no two
+   charts on the page say different things in the same colour.  The hue stays
+   inside the chart; the card itself is plain. #}
+<div class="grid row-n band" style="--n:4">
+  <div class="card" data-insight
+       data-ins-title="Registrations per day"
+       data-ins-what="Animals, owners and officer-recorded road sightings, counted per calendar day for the last 30 days. Read the two registration lines together: owners rising without animals means households are being visited but their herds are not being finished."
+       data-ins-source="animals / owners — GROUP BY created_at::date; events — type = 'sighting_road' GROUP BY occurred_at::date"
+       data-ins-scope="30 days ending today, zero-filled so a day with no work shows as a gap, not a missing point."
+       data-ins-api="/api/stats/timeseries?days=30{{ '&ulb=' ~ ulb if ulb }}"
+       data-ins-link="/admin/events{{ qs(ulb=ulb) }}" data-ins-link-label="Open the events feed">
+    <h2>Registrations per day (30 days)</h2>
+    <div class="chart-wrap"><canvas id="c-daily"></canvas></div>
+  </div>
+
+  <div class="card" data-insight
+       data-ins-title="Road sightings by hour of day"
+       data-ins-what="Every officer-recorded road sighting, bucketed by the hour it happened, in local time. The two peaks are the grazing cycle: animals let out in the morning and brought back to be milked in the evening. It tells you when to put patrols on the road."
+       data-ins-source="events — WHERE type = 'sighting_road' GROUP BY hour(occurred_at AT TIME ZONE 'Asia/Kolkata')"
+       data-ins-scope="All history in scope, not a rolling window — the shape is a routine, and needs the full record to be stable."
+       data-ins-caveat="Unverified public reports are excluded, as everywhere else on this page."
+       data-ins-api="/api/stats/hourly{{ qs(ulb=ulb) }}"
+       data-ins-link="/admin/events{{ qs(type='sighting_road', ulb=ulb) }}" data-ins-link-label="Open the sighting events">
+    <h2>Road sightings by hour</h2>
+    <div class="chart-wrap"><canvas id="c-hourly"></canvas></div>
+  </div>
+
+  <div class="card" data-insight
+       data-ins-title="Tagged and untagged animals by ULB"
+       data-ins-what="Each urban local body's register split into animals that carry a tag and animals that do not. The red portion is the work still outstanding, and it is where the next tagging team should be sent."
+       data-ins-source="animals — GROUP BY ulb_id, (tag_id IS NOT NULL)"
+       data-ins-scope="Green is tagged, red is untagged — the same green/red meaning used by every percentage on this page."
+       data-ins-api="/api/stats/by_ulb"
+       data-ins-link="/admin/animals{{ qs(ulb=ulb) }}" data-ins-link-label="Open the animal register">
+    <h2>Animals by ULB</h2>
+    <div class="chart-wrap"><canvas id="c-ulb"></canvas></div>
+  </div>
+
+  <div class="card" data-insight
+       data-ins-title="Species and sex"
+       data-ins-what="The register broken down by species and sex. The male share matters more than its size suggests: male calves and bulls have no milk value, are the animals most often abandoned, and are the ones no fine will ever bring home — they need shelter beds, not notices."
+       data-ins-source="animals — GROUP BY species, sex"
+       data-ins-scope="Registered animals, including impounded strays with no owner."
+       data-ins-api="/api/stats/species_sex{{ qs(ulb=ulb) }}"
+       data-ins-link="/admin/animals{{ qs(ulb=ulb) }}" data-ins-link-label="Open the animal register">
+    <h2>Species and sex</h2>
+    <div class="chart-wrap"><canvas id="c-species"></canvas></div>
+  </div>
+</div>
+
+<div class="grid band" style="grid-template-columns:minmax(0,1.55fr) minmax(0,1fr)">
+  <div class="card">
+    <h2>Road sightings, last 30 days</h2>
+    <div id="map"></div>
+    <p class="legend">Points are rounded to roughly 100 m and carry no owner or animal identity. Bigger, darker circles are places where cattle are seen again and again — those are the junctions to fix first.</p>
+  </div>
+
+  <div class="card">
+    <h2>Shelter occupancy</h2>
+    <div class="tscroll">
+    <table>
+      <thead><tr><th>Shelter</th><th>Kind</th><th class="right">Occupied</th><th style="width:30%">Load</th></tr></thead>
+      <tbody>
+      {% for s in shelters %}
+        {% set cls = pct_class(s.pct, 'high_bad') %}
+        <tr>
+          <td>{{ s.name }}</td>
+          <td><span class="pill mute">{{ s.kind }}</span></td>
+          <td class="right">{{ s.current_count }} / {{ s.capacity }}</td>
+          <td><div class="bar"><i class="{{ cls }}" style="width:{{ [s.pct, 100]|min }}%"></i></div>
+              <span class="legend pctn {{ cls }}">{{ s.pct }}%</span></td>
+        </tr>
+      {% else %}<tr><td colspan="4" class="muted">No shelters configured.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <p class="legend">Red at 90% and above: a full shelter is the point at which impounding stops being an option.</p>
+  </div>
+</div>
+
+{# Two list cards, both of which grow with the district: every row after the
+   card's height scrolls inside it rather than stretching the page. #}
+<div class="grid row-n band" style="--n:2">
+  <div class="card">
+    <h2>Field team: animals registered</h2>
+    <div class="tscroll">
+    <table>
+      <thead><tr><th>Officer</th><th class="right">Today</th><th class="right">7 days</th><th class="right">Total</th></tr></thead>
+      <tbody>
+      {% for r in leaderboard %}
+        <tr><td>{{ r.full_name }}</td><td class="right">{{ r.today }}</td>
+            <td class="right">{{ r.week }}</td><td class="right">{{ r.total }}</td></tr>
+      {% else %}<tr><td colspan="4" class="muted">No registrations yet.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Top repeat offenders</h2>
+    <div class="tscroll">
+    <table>
+      <thead><tr><th>Owner</th><th>Ward / village</th><th class="right">Offences</th><th class="right">Fined</th><th class="right">Paid</th></tr></thead>
+      <tbody>
+      {% for r in offenders %}
+        <tr>
+          <td>{% if r.owner_id %}<a href="/admin/owners/{{ r.owner_id }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}</td>
+          <td>{{ r.ward_or_village or '-' }}</td>
+          <td class="right">{% if r.offences >= 3 %}<span class="pill pbad">{{ r.offences }}</span>
+              {% elif r.offences == 2 %}<span class="pill pmid">{{ r.offences }}</span>
+              {% else %}{{ r.offences }}{% endif %}</td>
+          <td class="right">₹{{ "{:,.0f}".format(r.total) }}</td>
+          <td class="right">₹{{ "{:,.0f}".format(r.paid) }}</td>
+        </tr>
+      {% else %}<tr><td colspan="5" class="muted">No fines issued yet.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/vendor/chart-4.4.7.umd.min.js"></script>
+<script src="/static/vendor/leaflet-1.9.4.js"></script>
+<script src="/static/vendor/leaflet.markercluster-1.5.3.js"></script>
+<script nonce="{{ csp_nonce }}">
+  window.GT_BY_ULB = {{ by_ulb|tojson }};
+  window.GT_ULB = {{ (ulb if ulb else '')|tojson }};
+  window.GT_TILES = {{ map_tiles_url|tojson }};
+  window.GT_ATTR = {{ map_tiles_attribution|tojson }};
+</script>
+<script src="/static/dashboard.js?v={{ asset_v }}"></script>
+{% endblock %}

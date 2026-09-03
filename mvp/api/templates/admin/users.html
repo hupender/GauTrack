@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Users: GauTrack{% endblock %}
+{% block content %}
+<h1>User accounts</h1>
+
+<div class="card" style="margin-bottom:1rem">
+  <h2>Create an account</h2>
+  <div class="filters">
+    <label class="f">Username<input id="u-username" placeholder="field7" autocapitalize="none"></label>
+    <label class="f">Full name<input id="u-fullname" placeholder="Ramesh Kumar"></label>
+    <label class="f">Role
+      <select id="u-role">
+        <option value="field_officer">field_officer</option>
+        <option value="ulb_admin">ulb_admin</option>
+        <option value="viewer">viewer</option>
+        <option value="auditor">auditor</option>
+        <option value="super_admin">super_admin</option>
+      </select>
+    </label>
+    <label class="f">ULB
+      <select id="u-ulb"><option value="">- none -</option>
+        {% for u in ulbs %}<option value="{{ u.id }}">{{ u.name }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="f">Phone<input id="u-phone" inputmode="numeric"></label>
+    <label class="f">Two-factor<select id="u-totp"><option value="0">off</option><option value="1">on</option></select></label>
+    <button id="u-create">Create</button>
+  </div>
+  <p id="u-msg" class="legend"></p>
+</div>
+
+<div class="card">
+<table>
+  <thead><tr><th>Username</th><th>Name</th><th>Role</th><th>ULB</th><th>2FA</th><th>Active</th><th>Locked until</th><th></th></tr></thead>
+  <tbody>
+  {% for u in items %}
+    <tr>
+      <td class="mono">{{ u.username }}</td>
+      <td>{{ u.full_name }}</td>
+      <td><span class="pill">{{ u.role.value }}</span></td>
+      <td>{{ u.ulb_id or '-' }}</td>
+      <td>{{ 'on' if u.totp_enabled else 'off' }}</td>
+      <td>{% if u.is_active %}<span class="pill good">active</span>{% else %}<span class="pill bad">disabled</span>{% endif %}</td>
+      <td class="muted">{{ u.locked_until.strftime('%d %b %H:%M') if u.locked_until else '-' }}</td>
+      <td class="right">
+        <button class="sec" data-reset="{{ u.id }}">Reset password</button>
+        <button class="danger" data-toggle="{{ u.id }}">{{ 'Disable' if u.is_active else 'Enable' }}</button>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="legend">New and reset passwords are shown once, here, and never stored in readable form: the database keeps only an argon2id hash.</p>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}">
+const msg = document.getElementById("u-msg");
+document.getElementById("u-create").addEventListener("click", async function () {
+  const body = {
+    username: document.getElementById("u-username").value.trim().toLowerCase(),
+    full_name: document.getElementById("u-fullname").value.trim(),
+    role: document.getElementById("u-role").value,
+    ulb_id: document.getElementById("u-ulb").value ? Number(document.getElementById("u-ulb").value) : null,
+    phone: document.getElementById("u-phone").value.trim() || null,
+    totp_enabled: document.getElementById("u-totp").value === "1",
+  };
+  try {
+    const r = await gt.api("POST", "/api/users", body);
+    msg.textContent = "Created " + r.user.username + ": temporary password: " + r.temp_password +
+      (r.totp_provisioning_uri ? "  |  2FA setup URI: " + r.totp_provisioning_uri : "") +
+      "   (write this down now; it is not shown again)";
+  } catch (e) { msg.textContent = "Failed: " + e.message; }
+});
+document.querySelectorAll("[data-reset]").forEach(function (b) {
+  b.addEventListener("click", async function () {
+    try {
+      const r = await gt.api("POST", "/api/users/" + b.dataset.reset + "/reset_password");
+      msg.textContent = "New password for " + r.user.username + ": " + r.temp_password + " (shown once)";
+    } catch (e) { msg.textContent = "Failed: " + e.message; }
+  });
+});
+document.querySelectorAll("[data-toggle]").forEach(function (b) {
+  b.addEventListener("click", async function () {
+    try { await gt.api("POST", "/api/users/" + b.dataset.toggle + "/toggle"); location.reload(); }
+    catch (e) { msg.textContent = "Failed: " + e.message; }
+  });
+});
+</script>
+{% endblock %}

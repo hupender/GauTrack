@@ -1,0 +1,63 @@
+:root{
+  --bg:#f4f6f4; --card:#fff; --ink:#16211c; --muted:#5d6b64; --line:#dde3df;
+  --accent:#12603f; --accent-soft:#e6f0ea; --bad:#a32218; --warn:#a4560c; --good:#1d7a4c;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);
+  font:17px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Devanagari",sans-serif}
+header{position:sticky;top:0;z-index:10;background:var(--accent);color:#fff;
+  padding:.6rem .9rem;display:flex;align-items:center;gap:.6rem}
+header .title{font-weight:700}
+header .sub{font-size:.72rem;opacity:.85;display:block;font-weight:400}
+header .spacer{margin-left:auto}
+.badge{background:#fff;color:var(--accent);border-radius:999px;padding:.15rem .6rem;
+  font-size:.78rem;font-weight:700}
+.badge.pend{background:#ffd88a;color:#6b4a05}
+.demo{background:#ffe9b8;color:#6b4a05;text-align:center;font-size:.78rem;padding:.25rem;font-weight:600}
+main{padding:.9rem;max-width:640px;margin:0 auto;padding-bottom:4rem}
+h1{font-size:1.15rem;margin:.2rem 0 .9rem}
+.screen{display:none} .screen.on{display:block}
+.big-grid{display:grid;gap:.7rem;grid-template-columns:1fr 1fr}
+button.big{display:flex;flex-direction:column;align-items:flex-start;gap:.15rem;
+  min-height:92px;padding:.9rem;border-radius:12px;border:1px solid var(--line);
+  background:var(--card);color:var(--ink);text-align:left;font-size:1rem;font-weight:600;
+  box-shadow:0 1px 2px rgba(20,35,28,.06)}
+button.big .hi{font-weight:400;font-size:.82rem;color:var(--muted)}
+button.big.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+button.big.primary .hi{color:rgba(255,255,255,.85)}
+button.big.wide{grid-column:1 / -1;min-height:64px;flex-direction:row;align-items:center;justify-content:space-between}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.9rem;margin-bottom:.8rem}
+label{display:block;margin-bottom:.75rem;font-size:.82rem;color:var(--muted)}
+label > span.req::after{content:" *";color:var(--bad)}
+input,select,textarea{width:100%;font:inherit;font-size:16px;padding:.6rem .65rem;margin-top:.25rem; /* 16px: iOS Safari auto-zooms into smaller inputs */
+  border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+input[type=file]{padding:.4rem}
+.row{display:flex;gap:.5rem} .row > *{flex:1}
+button{font:inherit;padding:.7rem 1rem;border-radius:9px;border:1px solid var(--accent);
+  background:var(--accent);color:#fff;font-weight:600}
+button.sec{background:#fff;color:var(--accent)}
+button.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.5);padding:.35rem .7rem;font-size:.85rem}
+button.danger{background:var(--bad);border-color:var(--bad)}
+button.full{width:100%}
+button:disabled{opacity:.55}
+.gps{font-size:.82rem;color:var(--muted);display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.gps .ok{color:var(--good);font-weight:600} .gps .bad{color:var(--bad);font-weight:600}
+.msg{padding:.6rem .7rem;border-radius:8px;font-size:.85rem;margin:.6rem 0}
+.msg.err{background:#fbe3e1;color:var(--bad)} .msg.ok{background:#dff1e6;color:var(--good)}
+.msg.warn{background:#fdeed8;color:var(--warn)}
+.pill{display:inline-block;padding:.1rem .55rem;border-radius:999px;font-size:.74rem;background:var(--accent-soft);color:var(--accent)}
+.pill.bad{background:#fbe3e1;color:var(--bad)} .pill.warn{background:#fdeed8;color:var(--warn)}
+.pill.good{background:#dff1e6;color:var(--good)} .pill.mute{background:#ecefed;color:var(--muted)}
+.list{list-style:none;padding:0;margin:0}
+.list li{border-bottom:1px solid var(--line);padding:.55rem 0;font-size:.9rem}
+.list li:last-child{border-bottom:0}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.muted{color:var(--muted)} .small{font-size:.8rem}
+/* Sub-label under an input: explains the field in one line, so a field officer
+   is never guessing what "sq yards" or "identification mark" is asking for. */
+label small.hint{display:block;margin-top:.25rem;font-size:.75rem;color:var(--muted);line-height:1.35}
+.thumb{max-width:100%;border-radius:8px;margin-top:.4rem}
+.chips{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.25rem}
+.chips button{padding:.45rem .8rem;font-size:.88rem;font-weight:500;background:#fff;color:var(--ink);border-color:var(--line)}
+.chips button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.offline-bar{background:#5d6b64;color:#fff;text-align:center;font-size:.78rem;padding:.25rem}

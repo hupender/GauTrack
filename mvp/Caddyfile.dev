@@ -1,0 +1,38 @@
+# Local HTTPS for the LAN demo (`make dev-tls`).
+#
+# Why this exists: Chrome on Android treats plain http://<lan-ip> as an insecure
+# context, so `navigator.geolocation`, the camera capture attribute and service
+# worker registration are all blocked. `tls internal` makes Caddy mint a
+# certificate from its own local certificate authority, which turns the page
+# into a secure context once the phone trusts that CA.
+#
+# Started by scripts/dev_tls.sh, which fills in {$GT_LAN_IP} and proxies to the
+# uvicorn process on 127.0.0.1:8000.
+{
+	# a repo-local data dir so this never touches the machine's system trust store
+	storage file_system "{$GT_CADDY_DATA}"
+	admin off
+	auto_https disable_redirects
+}
+
+https://{$GT_LAN_IP}:8443, https://localhost:8443 {
+	tls internal
+
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "same-origin"
+		Permissions-Policy "geolocation=(self), camera=(self), microphone=()"
+		-Server
+	}
+	# note: the API already sets Service-Worker-Allowed on /app/sw.js;
+	# setting it here too would send the header twice.
+
+	# The demo root CA, so the phone can fetch and trust it over http first.
+	handle /rootca.crt {
+		root * "{$GT_CADDY_DATA}/pki/authorities/local"
+		rewrite * /root.crt
+		file_server
+	}
+
+	reverse_proxy 127.0.0.1:8000
+}

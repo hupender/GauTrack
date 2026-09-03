@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}GauTrack: Rewari{% endblock %}</title>
+<link rel="stylesheet" href="/static/admin.css?v={{ asset_v }}">
+{% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}" hx-headers='{"X-Requested-With":"GauTrack"}'>
+{% if demo %}<div class="demo-banner">DEMO DATA (not a live registry): Rewari district pilot</div>{% endif %}
+<header class="topbar">
+  <div class="brand">GauTrack<small>Rewari district · stray cattle registry</small></div>
+  {% if user %}
+  {# Record-level pages are hidden from roles that may not read records — the
+     `viewer` login used for the CM screen and the press.  They were never
+     reachable (every one of them bounces straight back to /cm), but a row of
+     links that do nothing is exactly the kind of thing someone clicks on a
+     projector in front of a room. #}
+  <nav>
+    {% if scope and scope.can_read_entities %}
+    <a href="/admin" class="{{ 'on' if page=='overview' }}">Overview</a>
+    <a href="/admin/owners" class="{{ 'on' if page=='owners' }}">Owners</a>
+    <a href="/admin/animals" class="{{ 'on' if page=='animals' }}">Animals</a>
+    <a href="/admin/events" class="{{ 'on' if page=='events' }}">Events</a>
+    <a href="/admin/fines" class="{{ 'on' if page=='fines' }}">Fines</a>
+    <a href="/admin/shelters" class="{{ 'on' if page=='shelters' }}">Shelters</a>
+    {% endif %}
+    {% if scope and scope.can_manage_users %}<a href="/admin/users" class="{{ 'on' if page=='users' }}">Users</a>{% endif %}
+    {% if scope and scope.can_read_audit %}<a href="/admin/audit" class="{{ 'on' if page=='audit' }}">Audit</a>{% endif %}
+    <a href="/cm" class="{{ 'on' if page=='cm' }}">CM view</a>
+  </nav>
+  <span style="font-size:.82rem;opacity:.9">{{ user.full_name }} · {{ role }}</span>
+  <form method="post" action="/admin/logout">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <button class="link" type="submit">Sign out</button>
+  </form>
+  {% endif %}
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+<script src="/static/vendor/htmx-2.0.4.min.js"></script>
+<script src="/static/admin.js?v={{ asset_v }}"></script>
+<script src="/static/insight.js?v={{ asset_v }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Animals: GauTrack{% endblock %}
+{% block content %}
+<h1>Animals <span class="muted" style="font-weight:400">({{ items|length }} shown)</span></h1>
+{% if user.role.value in ["super_admin","ulb_admin","auditor"] %}
+<p class="muted" style="margin-top:-6px"><a href="/api/export/animals.csv">Download CSV</a> <span style="opacity:.7">(add <code>?from=YYYY-MM-DD&amp;to=YYYY-MM-DD</code> to slice by date)</span></p>
+{% endif %}
+<form class="filters" method="get" action="/admin/animals">
+  <label class="f">Tag number<input name="q" value="{{ q }}" inputmode="numeric" placeholder="12 digits"></label>
+  <label class="f">ULB
+    <select name="ulb"><option value="">All in your scope</option>
+      {% for u in ulbs %}<option value="{{ u.id }}" {{ 'selected' if ulb==u.id }}>{{ u.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <label class="f">Status
+    <select name="status"><option value="">Any</option>
+      {% for s in ['registered','on_road_reported','impounded','in_gaushala','released','transferred','deceased','tag_missing'] %}
+      <option value="{{ s }}" {{ 'selected' if status==s }}>{{ s }}</option>{% endfor %}
+    </select>
+  </label>
+  <button type="submit">Search</button>
+</form>
+<div class="card">
+<table>
+  <thead><tr><th>Tag</th><th>Species</th><th>Sex</th><th>Age</th><th class="right">Years</th><th>Breed</th>
+             <th>Identification marks</th><th>Owner</th><th>ULB</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for a in items %}
+    <tr>
+      <td class="mono"><a href="/admin/animals/{{ a.id }}">{{ a.tag_id or 'untagged' }}</a></td>
+      <td>{{ a.species.value }}</td><td>{{ a.sex.value }}</td><td>{{ a.age_class.value }}</td>
+      <td class="right">{{ '%g'|format(a.age_years) if a.age_years is not none else '-' }}</td>
+      <td>{{ a.breed or '-' }}</td>
+      {# The natural marks: the identity that survives a tag being cut off. #}
+      <td class="muted">{{ [a.identification_mark_1, a.identification_mark_2]|select|join(' · ') or '-' }}</td>
+      <td>{% if a.owner_id %}<a href="/admin/owners/{{ a.owner_id }}">{{ owners.get(a.owner_id, '-') }}</a>
+          {% else %}<span class="pill warn">no owner</span>{% endif %}</td>
+      <td>{{ codes.get(a.ulb_id, '') }}</td>
+      <td><span class="pill {{ 'bad' if a.status.value in ['impounded','tag_missing','on_road_reported'] else 'mute' }}">{{ a.status.value }}</span></td>
+    </tr>
+  {% else %}<tr><td colspan="10" class="muted">No animals match.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

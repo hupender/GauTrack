@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Report a cow on the road: Rewari</title>
+<link rel="stylesheet" href="/static/admin.css">
+<style>
+  main{max-width:520px}
+  label.block{display:block;margin-bottom:.9rem;font-size:.9rem}
+  label.block input, label.block select, label.block textarea{width:100%;margin-top:.25rem}
+  .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+</style>
+</head>
+<body>
+{% if demo %}<div class="demo-banner">DEMO DATA: not a live registry</div>{% endif %}
+<header class="topbar"><div class="brand">GauTrack<small>Rewari district</small></div></header>
+<main>
+  <h1>Report cattle on the road</h1>
+  <p class="muted">Anyone can use this. Your report goes to the district team as an <strong>unverified</strong> sighting: an officer confirms it before any action is taken. We do not ask for your name or number.</p>
+
+  <div class="card">
+    <label class="block">Where is it? (optional)
+      <button type="button" id="gps" class="sec" style="width:100%">Use my current location</button>
+      <span id="gps-out" class="legend"></span>
+    </label>
+
+    <label class="block">Which area?
+      <select id="ulb">
+        {% for u in ulbs %}<option value="{{ u.id }}">{{ u.name }}</option>{% endfor %}
+      </select>
+    </label>
+
+    <label class="block">Tag number, if you can read it (optional)
+      <input id="tag" inputmode="numeric" maxlength="12" placeholder="12 digits on the yellow ear tag">
+    </label>
+
+    <label class="block">Photograph (optional)
+      <input id="photo" type="file" accept="image/*" capture="environment">
+    </label>
+
+    <label class="block">Anything else? (optional)
+      <textarea id="note" rows="3" maxlength="500" placeholder="e.g. three cows near the NH-48 flyover"></textarea>
+    </label>
+
+    <!-- honeypot: a person never sees this; a bot fills it in -->
+    <div class="hp" aria-hidden="true"><label>Website<input id="website" tabindex="-1" autocomplete="off"></label></div>
+
+    <button id="send" style="width:100%">Send report</button>
+    <p id="msg" class="legend"></p>
+  </div>
+  <p class="legend">Limited to 10 reports per hour from one internet connection, to keep the queue usable.</p>
+</main>
+<script nonce="{{ csp_nonce }}">
+let coords = null;
+document.getElementById("gps").addEventListener("click", function () {
+  const out = document.getElementById("gps-out");
+  if (!navigator.geolocation) { out.textContent = "This browser cannot share a location."; return; }
+  out.textContent = "getting location…";
+  navigator.geolocation.getCurrentPosition(
+    function (p) {
+      coords = { lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy };
+      out.textContent = "location captured (accurate to about " + Math.round(p.coords.accuracy) + " m)";
+    },
+    function (e) {
+      out.textContent = "could not get location (" + e.message + "). You can still send the report.";
+    },
+    { enableHighAccuracy: true, timeout: 12000 }
+  );
+});
+
+async function sha256(buf) {
+  // crypto.subtle only exists in a secure context (https, or localhost); on a plain
+  // http://<lan-ip> demo it is undefined. The server computes its own hash of the
+  // uploaded bytes regardless, so this is only an extra client-side cross-check.
+  if (!window.crypto || !window.crypto.subtle) return null;
+  const d = await crypto.subtle.digest("SHA-256", buf);
+  return Array.from(new Uint8Array(d)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+document.getElementById("send").addEventListener("click", async function () {
+  const msg = document.getElementById("msg");
+  msg.textContent = "sending…";
+  try {
+    let photoId = null;
+    const f = document.getElementById("photo").files[0];
+    if (f) {
+      const buf = await f.arrayBuffer();
+      const fd = new FormData();
+      fd.append("file", f);
+      const h = await sha256(buf);
+      if (h) fd.append("sha256", h);
+      const up = await fetch("/api/public/photo", {
+        method: "POST", body: fd, headers: { "X-Requested-With": "GauTrack" },
+      });
+      if (up.ok) { photoId = (await up.json()).id; }
+    }
+    const res = await fetch("/api/public/report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Requested-With": "GauTrack" },
+      body: JSON.stringify({
+        lat: coords && coords.lat, lng: coords && coords.lng,
+        gps_accuracy_m: coords && coords.acc,
+        tag_digits: document.getElementById("tag").value || null,
+        note: document.getElementById("note").value || null,
+        ulb_id: Number(document.getElementById("ulb").value),
+        photo_id: photoId,
+        website: document.getElementById("website").value || null,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || res.statusText);
+    msg.textContent = "Thank you: your report has been logged.";
+    document.getElementById("send").disabled = true;
+  } catch (e) { msg.textContent = "Could not send: " + e.message; }
+});
+</script>
+</body>
+</html>

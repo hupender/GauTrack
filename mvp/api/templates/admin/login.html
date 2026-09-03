@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in: GauTrack</title>
+<link rel="stylesheet" href="/static/admin.css">
+</head>
+<body>
+{% if demo %}<div class="demo-banner">DEMO DATA: not a live registry</div>{% endif %}
+<div class="login-wrap">
+  <div class="card">
+    <h1 style="margin-top:0">GauTrack</h1>
+    <p class="muted" style="margin-top:-.6rem">Rewari district stray cattle registry</p>
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+    <form method="post" action="/admin/login">
+      <!-- double-submit CSRF: this value must match the gt_csrf cookie -->
+      <input type="hidden" name="csrf_token" value="{{ csrf }}">
+      <input type="hidden" name="next" value="{{ next }}">
+      <label>Username
+        <input name="username" autocomplete="username" autocapitalize="none" required autofocus>
+      </label>
+      <label>Password
+        <input name="password" type="password" autocomplete="current-password" required>
+      </label>
+      <label>One-time code <span class="muted">(only if enabled for your account)</span>
+        <input name="totp_code" inputmode="numeric" autocomplete="one-time-code">
+      </label>
+      <button type="submit" style="width:100%">Sign in</button>
+    </form>
+    <p class="legend">Field staff should use the <a href="/app/">field app</a>.
+      Members of the public can <a href="/report">report a cow on the road</a>.</p>
+  </div>
+</div>
+</body>
+</html>
