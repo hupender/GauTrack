@@ -455,6 +455,11 @@
       state.me = null;
       show("login");
     });
+    $("btn-admin").addEventListener("click", async function () {
+      try { await api("POST", "/admin"); } catch (e) { /* ignore */ }
+      state.me = null;
+      show("admin");
+    });
     $("btn-home").addEventListener("click", function () { show("home"); });
 
     document.querySelectorAll("[data-go]").forEach(function (b) {
