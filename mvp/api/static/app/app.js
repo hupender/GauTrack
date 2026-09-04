@@ -452,12 +452,15 @@
     });
 
     $("btn-logout").addEventListener("click", async function () {
-      router.navigate("/admin");
+      try {
+        await api("POST", "/api/auth/logout")
+      } catch (error) {
+        state.me = null;
+        show("login");
+      }
     });
     $("btn-admin").addEventListener("click", async function () {
-      try { await api("POST", "/admin"); } catch (e) { /* ignore */ }
-      state.me = null;
-      show("admin");
+      router.navigate("/admin");
     });
     $("btn-home").addEventListener("click", function () { show("home"); });
 
