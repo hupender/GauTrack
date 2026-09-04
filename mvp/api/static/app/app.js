@@ -122,7 +122,7 @@
     window.scrollTo(0, 0);
     const authed = !!state.me;
     $("btn-home").hidden = !authed || screen === "home";
-    $("btn-admin").hidden = !authed || screen === "home";
+    $("btn-admin").hidden = !authed;
     $("btn-logout").hidden = !authed;
   }
 
