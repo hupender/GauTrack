@@ -452,9 +452,7 @@
     });
 
     $("btn-logout").addEventListener("click", async function () {
-      try { await api("POST", "/api/auth/logout"); } catch (e) { /* ignore */ }
-      state.me = null;
-      show("login");
+      router.navigate("/admin");
     });
     $("btn-admin").addEventListener("click", async function () {
       try { await api("POST", "/admin"); } catch (e) { /* ignore */ }
