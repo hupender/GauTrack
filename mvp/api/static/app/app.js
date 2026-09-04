@@ -751,3 +751,7 @@
     }
   })();
 })();
+
+document.getElementById("btn-admin").addEventListener("click", () => {
+  window.location.href = "/admin";
+});
