@@ -459,9 +459,6 @@
         show("login");
       }
     });
-    $("btn-admin").addEventListener("click", async function () {
-      router.navigate("/admin");
-    });
     $("btn-home").addEventListener("click", function () { show("home"); });
 
     document.querySelectorAll("[data-go]").forEach(function (b) {
